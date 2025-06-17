@@ -26,6 +26,11 @@
             </section>
             <aside class="card-list-container">
                 <h2>Mis Tarjetas</h2>
+                <div style="margin-top: 1rem;">
+  <button class="btn" onclick="exportarJSON()">Exportar</button>
+  <input type="file" id="importar-json" accept=".json" style="display: none;" />
+  <button class="btn" onclick="document.getElementById('importar-json').click()">Importar</button>
+</div>
                 <div id="card-list">
                     <!-- Las tarjetas se renderizarán aquí -->
                 </div>

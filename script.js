@@ -372,4 +372,43 @@ document.addEventListener('DOMContentLoaded', () => {
     addCardForm.addEventListener('submit', handleAddCard);
     addExpenseForm.addEventListener('submit', handleAddExpense);
     addPaymentForm.addEventListener('submit', handleAddPayment);
+
+    // Exportar datos como archivo JSON
+function exportarJSON() {
+    const dataStr = JSON.stringify(cards, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "creditcardtracker_backup.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Importar datos desde archivo JSON
+document.getElementById('importar-json').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (Array.isArray(importedData)) {
+                cards = importedData;
+                selectedCardId = cards.length > 0 ? cards[0].id : null;
+                saveData();
+                render();
+                Swal.fire('¡Importado!', 'Los datos fueron importados correctamente.', 'success');
+            } else {
+                throw new Error("El archivo no contiene un arreglo válido.");
+            }
+        } catch (err) {
+            Swal.fire('Error', 'El archivo JSON no es válido.', 'error');
+        }
+    };
+    reader.readAsText(file);
+});
 });
