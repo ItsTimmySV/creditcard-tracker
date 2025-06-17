@@ -378,17 +378,13 @@ function exportarJSON() {
     const dataStr = JSON.stringify(cards, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
 
-    // Android WebView y navegadores móviles necesitan esto:
     if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-        // Para IE y Edge
         window.navigator.msSaveOrOpenBlob(blob, 'creditcardtracker_backup.json');
     } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
         a.download = "creditcardtracker_backup.json";
-
-        // Asegúrate de que se agregue al DOM y se active por el usuario
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
@@ -397,6 +393,8 @@ function exportarJSON() {
         }, 100);
     }
 }
+
+window.exportarJSON = exportarJSON; // 👈 esto es clave
 
 // Importar datos desde archivo JSON
 document.getElementById('importar-json').addEventListener('change', function(event) {
