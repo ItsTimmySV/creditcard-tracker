@@ -2,20 +2,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let cards = [];
     let selectedCardId = null;
 
-    // DOM Elements
     const themeSwitcher = document.getElementById('theme-switcher');
     const cardListEl = document.getElementById('card-list');
     const addCardBtn = document.getElementById('add-card-btn');
     const addCardModal = document.getElementById('add-card-modal');
     const addCardForm = document.getElementById('add-card-form');
     const closeBtns = document.querySelectorAll('.close-btn');
-    const summaryContainerEl = document.getElementById('summary-container');
     const welcomeMessageEl = document.getElementById('welcome-message');
     const detailsContentEl = document.getElementById('details-content');
-    const expenseCardIdInput = document.getElementById('expense-card-id');
-    const paymentCardIdInput = document.getElementById('payment-card-id');
 
-    // Guardar/Cargar
     const saveData = () => {
         localStorage.setItem('creditCardData', JSON.stringify(cards));
     };
@@ -25,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) cards = JSON.parse(data);
     };
 
-    // Exportar
     function exportarJSON() {
         const dataStr = JSON.stringify(cards, null, 2);
         const blob = new Blob([dataStr], { type: 'application/json' });
@@ -38,9 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
-
     window.exportarJSON = exportarJSON;
-    // Importar
+
     document.getElementById('importar-json').addEventListener('change', function (event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -54,38 +47,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveData();
                     render();
                     Swal.fire('¡Importado!', 'Los datos fueron importados correctamente.', 'success');
-                } else {
-                    throw new Error('El archivo no contiene un arreglo válido.');
-                }
-            } catch (err) {
+                } else throw new Error();
+            } catch {
                 Swal.fire('Error', 'El archivo JSON no es válido.', 'error');
             }
         };
         reader.readAsText(file);
     });
 
-    // Tema
     themeSwitcher.addEventListener('click', () => {
         document.body.classList.toggle('dark-theme');
         document.body.classList.toggle('light-theme');
         localStorage.setItem('theme', document.body.className);
     });
 
-    // Calcular fechas
     function getCardDates(cutoffDay, paymentDay) {
         const today = new Date();
         let nextCutoff = new Date(today.getFullYear(), today.getMonth(), cutoffDay);
         if (today.getDate() > cutoffDay) nextCutoff.setMonth(nextCutoff.getMonth() + 1);
-
         let nextPayment = new Date(nextCutoff);
         nextPayment.setMonth(nextPayment.getMonth() + (paymentDay < cutoffDay ? 1 : 0));
         nextPayment.setDate(paymentDay);
-
         const daysUntilPayment = Math.ceil((nextPayment - today) / (1000 * 60 * 60 * 24));
         return { nextCutoff, nextPayment, daysUntilPayment };
     }
 
-    // Modal editar tarjeta
     const handleEditCard = (e) => {
         const cardId = e.currentTarget.dataset.id;
         const card = cards.find(c => c.id === cardId);
@@ -99,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addCardForm.setAttribute('data-edit-id', cardId);
         addCardModal.style.display = 'block';
     };
+
     const handleAddCard = (e) => {
         e.preventDefault();
         const editId = addCardForm.getAttribute('data-edit-id');
@@ -112,9 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (editId) {
-            const cardIndex = cards.findIndex(c => c.id === editId);
-            if (cardIndex !== -1) {
-                cards[cardIndex] = { ...cards[cardIndex], ...cardData };
+            const index = cards.findIndex(c => c.id === editId);
+            if (index !== -1) {
+                cards[index] = { ...cards[index], ...cardData };
                 selectedCardId = editId;
                 Swal.fire('Actualizada', 'Tarjeta actualizada correctamente.', 'success');
             }
@@ -158,19 +145,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const card = cards.find(c => c.id === selectedCardId);
         if (!card) return;
+
         const { nextCutoff, nextPayment, daysUntilPayment } = getCardDates(card.cutoffDay, card.paymentDay);
+        const balance = card.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+        const availableCredit = card.creditLimit - balance;
+
         detailsContentEl.innerHTML = `
             <div class="details-header">
                 <h2>${card.nickname} <small>${card.bank} - **** ${card.last4}</small></h2>
                 <button class="btn" id="edit-card-btn" data-id="${card.id}">Editar</button>
             </div>
             <div class="stat-card">
-                <p>Próximo corte: ${nextCutoff.toLocaleDateString()}</p>
-                <p>Próximo pago: ${nextPayment.toLocaleDateString()} (${daysUntilPayment} días restantes)</p>
+                <p><strong>Balance Actual:</strong> $${balance.toFixed(2)}</p>
+                <p><strong>Crédito Disponible:</strong> $${availableCredit.toFixed(2)}</p>
+                <p><strong>Próximo corte:</strong> ${nextCutoff.toLocaleDateString()}</p>
+                <p><strong>Próximo pago:</strong> ${nextPayment.toLocaleDateString()} (${daysUntilPayment} días restantes)</p>
+            </div>
+            <div class="transactions-section">
+                <h3>Movimientos</h3>
+                <ul class="transaction-list">
+                    ${card.transactions.length === 0 ? '<li>No hay movimientos.</li>' : card.transactions.map(tx => `
+                        <li>
+                            <strong>${tx.description}</strong> - $${tx.amount.toFixed(2)}<br/>
+                            <small>${new Date(tx.date).toLocaleDateString()}</small>
+                        </li>
+                    `).join('')}
+                </ul>
             </div>
         `;
         welcomeMessageEl.classList.add('hidden');
         detailsContentEl.classList.remove('hidden');
+        document.getElementById('edit-card-btn').addEventListener('click', handleEditCard);
     };
 
     function render() {
@@ -179,11 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
         saveData();
     }
 
-    // Setup
-    closeBtns.forEach(btn => btn.addEventListener('click', () => addCardModal.style.display = 'none'));
-    document.addEventListener('click', e => {
-        if (e.target.id === 'edit-card-btn') handleEditCard(e);
-    });
+    closeBtns.forEach(btn => btn.addEventListener('click', () => {
+        addCardModal.style.display = 'none';
+    }));
+
     addCardForm.addEventListener('submit', handleAddCard);
     addCardBtn.addEventListener('click', () => {
         addCardForm.reset();
@@ -191,9 +195,10 @@ document.addEventListener('DOMContentLoaded', () => {
         addCardModal.style.display = 'block';
     });
 
-    // Inicializar
+    // Inicialización
     const savedTheme = localStorage.getItem('theme');
     document.body.className = savedTheme || 'dark-theme';
+
     loadData();
     if (cards.length > 0) selectedCardId = cards[0].id;
     render();
