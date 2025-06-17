@@ -138,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="details-header-buttons">
                     <button class="btn btn-success" id="add-payment-detail-btn" data-id="${card.id}">Realizar Pago</button>
                     <button class="btn btn-danger" id="delete-card-btn" data-id="${card.id}">Eliminar</button>
+                    <button class="btn" id="edit-card-btn" data-id="${card.id}">Editar</button>
                 </div>
             </div>
 
@@ -215,25 +216,41 @@ document.addEventListener('DOMContentLoaded', () => {
         addPaymentModal.style.display = 'none';
     };
 
-    const handleAddCard = (e) => {
-        e.preventDefault();
+const handleAddCard = (e) => {
+    e.preventDefault();
+    const editId = addCardForm.getAttribute('data-edit-id');
+    const cardData = {
+        nickname: document.getElementById('card-nickname').value,
+        bank: document.getElementById('card-bank').value,
+        last4: document.getElementById('card-last4').value,
+        creditLimit: parseFloat(document.getElementById('credit-limit').value),
+        cutoffDay: parseInt(document.getElementById('cutoff-day').value),
+        paymentDay: parseInt(document.getElementById('payment-day').value)
+    };
+
+    if (editId) {
+        const cardIndex = cards.findIndex(c => c.id === editId);
+        if (cardIndex !== -1) {
+            cards[cardIndex] = { ...cards[cardIndex], ...cardData };
+            selectedCardId = editId;
+            Swal.fire('¡Actualizada!', 'Tarjeta actualizada correctamente.', 'success');
+        }
+        addCardForm.removeAttribute('data-edit-id');
+    } else {
         const newCard = {
             id: `card_${Date.now()}`,
-            nickname: document.getElementById('card-nickname').value,
-            bank: document.getElementById('card-bank').value,
-            last4: document.getElementById('card-last4').value,
-            creditLimit: parseFloat(document.getElementById('credit-limit').value),
-            cutoffDay: parseInt(document.getElementById('cutoff-day').value),
-            paymentDay: parseInt(document.getElementById('payment-day').value),
+            ...cardData,
             transactions: []
         };
         cards.push(newCard);
-        addCardForm.reset();
-        handleCloseModals();
         selectedCardId = newCard.id;
-        render();
         Swal.fire('¡Éxito!', 'Tarjeta añadida correctamente.', 'success');
-    };
+    }
+
+    addCardForm.reset();
+    handleCloseModals();
+    render();
+};
 
     const handleOpenExpenseModal = (e) => {
         const cardId = e.currentTarget.dataset.id;
@@ -309,6 +326,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const handleEditCard = (e) => {
+    const cardId = e.currentTarget.dataset.id;
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return;
+
+    // Rellenar el modal con los valores actuales
+    document.getElementById('card-nickname').value = card.nickname;
+    document.getElementById('card-bank').value = card.bank;
+    document.getElementById('card-last4').value = card.last4;
+    document.getElementById('credit-limit').value = card.creditLimit;
+    document.getElementById('cutoff-day').value = card.cutoffDay;
+    document.getElementById('payment-day').value = card.paymentDay;
+
+    // Marcar que es edición
+    addCardForm.setAttribute('data-edit-id', cardId);
+
+    // Mostrar el modal
+    handleOpenModal(addCardModal);
+};
+
     // --- Utility Functions ---
     function getCardDates(cutoffDay, paymentDay) {
         const today = new Date();
@@ -364,6 +401,11 @@ document.addEventListener('DOMContentLoaded', () => {
     themeSwitcher.addEventListener('click', handleThemeSwitch);
     addCardBtn.addEventListener('click', () => handleOpenModal(addCardModal));
     closeBtns.forEach(btn => btn.addEventListener('click', handleCloseModals));
+    document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'edit-card-btn') {
+        handleEditCard(e);
+    }
+});
     window.addEventListener('click', (e) => {
         if (e.target === addCardModal || e.target === addExpenseModal || e.target === addPaymentModal) {
             handleCloseModals();
@@ -391,8 +433,10 @@ function exportarJSON() {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
         }, 100);
-    }
+    }Ya 
 }
+
+window.exportarJSON = exportarJSON;
 
 
 
@@ -422,4 +466,4 @@ document.getElementById('importar-json').addEventListener('change', function(eve
 });
 });
 
-window.exportarJSON = exportarJSON;
+
