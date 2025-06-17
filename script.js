@@ -422,4 +422,4 @@ document.getElementById('importar-json').addEventListener('change', function(eve
 });
 });
 
-window.exportarJSON = exportarJSON; // 👈 esto es clave
+window.exportarJSON = exportarJSON;
