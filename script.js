@@ -394,7 +394,7 @@ function exportarJSON() {
     }
 }
 
-window.exportarJSON = exportarJSON; // 👈 esto es clave
+
 
 // Importar datos desde archivo JSON
 document.getElementById('importar-json').addEventListener('change', function(event) {
@@ -421,3 +421,5 @@ document.getElementById('importar-json').addEventListener('change', function(eve
     reader.readAsText(file);
 });
 });
+
+window.exportarJSON = exportarJSON; // 👈 esto es clave
