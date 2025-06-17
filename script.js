@@ -10,11 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtns = document.querySelectorAll('.close-btn');
     const welcomeMessageEl = document.getElementById('welcome-message');
     const detailsContentEl = document.getElementById('details-content');
+    const summaryContainerEl = document.getElementById('summary-container');
 
     const saveData = () => {
         localStorage.setItem('creditCardData', JSON.stringify(cards));
     };
-
     const loadData = () => {
         const data = localStorage.getItem('creditCardData');
         if (data) cards = JSON.parse(data);
@@ -86,6 +86,25 @@ document.addEventListener('DOMContentLoaded', () => {
         addCardModal.style.display = 'block';
     };
 
+    const handleDeleteCard = (e) => {
+        const cardId = e.currentTarget.dataset.id;
+        Swal.fire({
+            title: '¿Eliminar tarjeta?',
+            text: 'Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                cards = cards.filter(c => c.id !== cardId);
+                selectedCardId = null;
+                saveData();
+                render();
+            }
+        });
+    };
+
     const handleAddCard = (e) => {
         e.preventDefault();
         const editId = addCardForm.getAttribute('data-edit-id');
@@ -97,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
             cutoffDay: parseInt(document.getElementById('cutoff-day').value),
             paymentDay: parseInt(document.getElementById('payment-day').value)
         };
-
         if (editId) {
             const index = cards.findIndex(c => c.id === editId);
             if (index !== -1) {
@@ -116,10 +134,40 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedCardId = newCard.id;
             Swal.fire('Añadida', 'Tarjeta nueva añadida correctamente.', 'success');
         }
-
         addCardForm.reset();
         addCardModal.style.display = 'none';
         render();
+    };
+
+    const renderSummary = () => {
+        if (!summaryContainerEl) return;
+        if (cards.length === 0) {
+            summaryContainerEl.classList.add('hidden');
+            return;
+        }
+        const totalBalance = cards.reduce((total, card) => {
+            return total + card.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+        }, 0);
+        const totalLimit = cards.reduce((total, card) => total + card.creditLimit, 0);
+        const totalAvailable = totalLimit - totalBalance;
+        const usage = totalLimit ? (totalBalance / totalLimit) * 100 : 0;
+        summaryContainerEl.classList.remove('hidden');
+        summaryContainerEl.innerHTML = `
+            <h3>Resumen General</h3>
+            <div class="summary-item">
+                <span>Deuda Total</span><strong>$${totalBalance.toFixed(2)}</strong>
+            </div>
+            <div class="summary-item">
+                <span>Disponible Total</span><strong>$${totalAvailable.toFixed(2)}</strong>
+            </div>
+            <div class="summary-item">
+                <span>Límite Total</span><strong>$${totalLimit.toFixed(2)}</strong>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: ${Math.min(usage, 100)}%"></div>
+            </div>
+            <small>Uso general: ${usage.toFixed(1)}%</small>
+        `;
     };
 
     const renderCardList = () => {
@@ -145,7 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const card = cards.find(c => c.id === selectedCardId);
         if (!card) return;
-
         const { nextCutoff, nextPayment, daysUntilPayment } = getCardDates(card.cutoffDay, card.paymentDay);
         const balance = card.transactions.reduce((sum, tx) => sum + tx.amount, 0);
         const availableCredit = card.creditLimit - balance;
@@ -153,32 +200,39 @@ document.addEventListener('DOMContentLoaded', () => {
         detailsContentEl.innerHTML = `
             <div class="details-header">
                 <h2>${card.nickname} <small>${card.bank} - **** ${card.last4}</small></h2>
-                <button class="btn" id="edit-card-btn" data-id="${card.id}">Editar</button>
+                <div class="details-header-buttons">
+                    <button class="btn btn-success" id="add-expense-btn" data-id="${card.id}">+ Añadir Gasto</button>
+                    <button class="btn" id="edit-card-btn" data-id="${card.id}">Editar</button>
+                    <button class="btn btn-danger" id="delete-card-btn" data-id="${card.id}">Eliminar</button>
+                </div>
             </div>
-            <div class="stat-card">
-                <p><strong>Balance Actual:</strong> $${balance.toFixed(2)}</p>
-                <p><strong>Crédito Disponible:</strong> $${availableCredit.toFixed(2)}</p>
-                <p><strong>Próximo corte:</strong> ${nextCutoff.toLocaleDateString()}</p>
-                <p><strong>Próximo pago:</strong> ${nextPayment.toLocaleDateString()} (${daysUntilPayment} días restantes)</p>
-            </div>
-            <div class="transactions-section">
-                <h3>Movimientos</h3>
-                <ul class="transaction-list">
-                    ${card.transactions.length === 0 ? '<li>No hay movimientos.</li>' : card.transactions.map(tx => `
-                        <li>
-                            <strong>${tx.description}</strong> - $${tx.amount.toFixed(2)}<br/>
-                            <small>${new Date(tx.date).toLocaleDateString()}</small>
-                        </li>
-                    `).join('')}
-                </ul>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Balance Actual</h4>
+                    <p>$${balance.toFixed(2)}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Crédito Disponible</h4>
+                    <p>$${availableCredit.toFixed(2)}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Próximo Corte</h4>
+                    <p>${nextCutoff.toLocaleDateString()}</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Próximo Pago</h4>
+                    <p>${nextPayment.toLocaleDateString()} (${daysUntilPayment} días restantes)</p>
+                </div>
             </div>
         `;
-        welcomeMessageEl.classList.add('hidden');
-        detailsContentEl.classList.remove('hidden');
+
         document.getElementById('edit-card-btn').addEventListener('click', handleEditCard);
+        document.getElementById('delete-card-btn').addEventListener('click', handleDeleteCard);
+        // Aquí puedes enganchar el botón de añadir gasto si quieres modal
     };
 
     function render() {
+        renderSummary();
         renderCardList();
         renderCardDetails();
         saveData();
@@ -189,16 +243,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
 
     addCardForm.addEventListener('submit', handleAddCard);
+
     addCardBtn.addEventListener('click', () => {
         addCardForm.reset();
         addCardForm.removeAttribute('data-edit-id');
         addCardModal.style.display = 'block';
     });
 
-    // Inicialización
     const savedTheme = localStorage.getItem('theme');
     document.body.className = savedTheme || 'dark-theme';
-
     loadData();
     if (cards.length > 0) selectedCardId = cards[0].id;
     render();
