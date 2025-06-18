@@ -11,46 +11,66 @@
   <header>
     <h1>CreditCard Tracker</h1>
     <button id="theme-switcher" class="theme-btn">
-      <i class="fas fa-sun"></i><i class="fas fa-moon"></i>
+      <i class="fas fa-moon"></i>
     </button>
   </header>
 
   <main class="container">
-    <aside class="left-panel">
+    <aside class="card-list-container">
       <h2>Mis Tarjetas</h2>
-      <div class="buttons">
-        <button onclick="exportData()">Exportar</button>
-        <input type="file" id="import-input" hidden />
-        <button onclick="document.getElementById('import-input').click()">Importar</button>
+      <div class="card-list-actions">
+        <button class="btn" onclick="exportarJSON()">Exportar</button>
+        <input type="file" id="importar-json" accept=".json" style="display: none;" />
+        <button class="btn" onclick="document.getElementById('importar-json').click()">Importar</button>
       </div>
       <div id="card-list"></div>
       <button id="add-card-btn" class="fab"><i class="fas fa-plus"></i></button>
     </aside>
 
-    <section class="details">
-      <div id="welcome">
+    <section id="card-details-section" class="card-details-container">
+      <div id="welcome-message">
         <h2>Bienvenido</h2>
-        <p>Selecciona o crea una tarjeta para empezar.</p>
+        <p>Selecciona una tarjeta para ver sus detalles o añade una nueva.</p>
       </div>
-      <div id="card-details" class="hidden"></div>
+      <div id="details-content" class="hidden"></div>
     </section>
   </main>
 
-  <!-- Modal Tarjeta -->
-  <div id="card-modal" class="modal hidden">
-    <form id="card-form" class="modal-content">
-      <h3 id="modal-title">Añadir Tarjeta</h3>
-      <input type="text" id="nickname" placeholder="Alias" required />
-      <input type="text" id="bank" placeholder="Banco" required />
-      <input type="text" id="last4" placeholder="Últimos 4 dígitos" pattern="\d{4}" required />
-      <input type="number" id="limit" placeholder="Límite de crédito" required />
-      <input type="number" id="cutoff" placeholder="Día de corte (1-31)" min="1" max="31" required />
-      <input type="number" id="payment" placeholder="Día de pago (1-31)" min="1" max="31" required />
-      <button type="submit">Guardar</button>
-      <button type="button" onclick="closeModal()">Cancelar</button>
-    </form>
+  <!-- Modales -->
+  <div id="add-card-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h2 id="modal-title">Añadir Tarjeta</h2>
+      <form id="add-card-form">
+        <input type="hidden" id="card-id" />
+        <input required type="text" id="card-nickname" placeholder="Alias">
+        <input required type="text" id="card-bank" placeholder="Banco">
+        <input required type="text" id="card-last4" placeholder="Últimos 4 dígitos" maxlength="4">
+        <input required type="number" id="credit-limit" placeholder="Límite de crédito">
+        <input required type="number" id="cutoff-day" placeholder="Día de corte (1-31)" min="1" max="31">
+        <input required type="number" id="payment-day" placeholder="Día de pago (1-31)" min="1" max="31">
+        <button class="btn" type="submit">Guardar</button>
+      </form>
+    </div>
   </div>
 
+  <div id="transaction-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h2>Nuevo Movimiento</h2>
+      <form id="add-transaction-form">
+        <input type="text" id="transaction-description" placeholder="Descripción" required>
+        <input type="number" id="transaction-amount" placeholder="Monto" step="0.01" required>
+        <select id="transaction-type" required>
+          <option value="expense">Gasto</option>
+          <option value="payment">Pago</option>
+        </select>
+        <button class="btn" type="submit">Agregar</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="script.js"></script>
 </body>
 </html>

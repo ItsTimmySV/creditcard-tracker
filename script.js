@@ -1,153 +1,199 @@
-let cards = [];
-let selectedId = null;
-let editMode = null;
+document.addEventListener('DOMContentLoaded', () => {
+  let cards = [];
+  let selectedCardId = null;
 
-const themeBtn = document.getElementById('theme-switcher');
-const cardList = document.getElementById('card-list');
-const details = document.getElementById('card-details');
-const welcome = document.getElementById('welcome');
-const modal = document.getElementById('card-modal');
-const form = document.getElementById('card-form');
-const importInput = document.getElementById('import-input');
+  const themeSwitcher = document.getElementById('theme-switcher');
+  const cardList = document.getElementById('card-list');
+  const addCardBtn = document.getElementById('add-card-btn');
+  const addCardModal = document.getElementById('add-card-modal');
+  const addCardForm = document.getElementById('add-card-form');
+  const transactionModal = document.getElementById('transaction-modal');
+  const transactionForm = document.getElementById('add-transaction-form');
+  const detailsContent = document.getElementById('details-content');
+  const welcomeMessage = document.getElementById('welcome-message');
+  const fileInput = document.getElementById('importar-json');
+  const closeBtns = document.querySelectorAll('.close-btn');
 
-function save() {
-  localStorage.setItem('cards', JSON.stringify(cards));
-}
-function load() {
-  const data = localStorage.getItem('cards');
-  if (data) cards = JSON.parse(data);
-}
-function exportData() {
-  const blob = new Blob([JSON.stringify(cards, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'cards.json';
-  a.click();
-}
-importInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (Array.isArray(data)) {
+  function save() {
+    localStorage.setItem('creditCardData', JSON.stringify(cards));
+  }
+
+  function load() {
+    const data = localStorage.getItem('creditCardData');
+    if (data) cards = JSON.parse(data);
+  }
+
+  function exportarJSON() {
+    const data = JSON.stringify(cards, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'creditcardtracker_backup.json';
+    a.click();
+  }
+
+  window.exportarJSON = exportarJSON;
+
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (evt) {
+      try {
+        const data = JSON.parse(evt.target.result);
         cards = data;
-        selectedId = null;
+        selectedCardId = cards[0]?.id || null;
+        save();
+        render();
+      } catch {
+        alert('Archivo inválido');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  themeSwitcher.addEventListener('click', () => {
+    document.body.classList.toggle('dark-theme');
+    document.body.classList.toggle('light-theme');
+  });
+
+  addCardBtn.addEventListener('click', () => {
+    addCardForm.reset();
+    addCardModal.style.display = 'flex';
+  });
+
+  addCardForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const card = {
+      id: document.getElementById('card-id').value || `card_${Date.now()}`,
+      nickname: document.getElementById('card-nickname').value,
+      bank: document.getElementById('card-bank').value,
+      last4: document.getElementById('card-last4').value,
+      creditLimit: parseFloat(document.getElementById('credit-limit').value),
+      cutoffDay: parseInt(document.getElementById('cutoff-day').value),
+      paymentDay: parseInt(document.getElementById('payment-day').value),
+      transactions: []
+    };
+    const existingIndex = cards.findIndex(c => c.id === card.id);
+    if (existingIndex >= 0) {
+      cards[existingIndex] = card;
+    } else {
+      cards.push(card);
+    }
+    selectedCardId = card.id;
+    addCardModal.style.display = 'none';
+    save();
+    render();
+  });
+
+  transactionForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const card = cards.find(c => c.id === selectedCardId);
+    if (!card) return;
+    const description = document.getElementById('transaction-description').value;
+    const amount = parseFloat(document.getElementById('transaction-amount').value);
+    const type = document.getElementById('transaction-type').value;
+    const signedAmount = type === 'expense' ? amount : -amount;
+    card.transactions.push({ description, amount: signedAmount, date: new Date().toISOString() });
+    transactionModal.style.display = 'none';
+    save();
+    render();
+  });
+
+  closeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.closest('.modal').style.display = 'none';
+    });
+  });
+
+  function renderCardList() {
+    cardList.innerHTML = '';
+    cards.forEach(card => {
+      const div = document.createElement('div');
+      div.className = 'credit-card-item';
+      div.innerHTML = `<h3>${card.nickname}</h3><p>${card.bank} - **** ${card.last4}</p>`;
+      div.onclick = () => {
+        selectedCardId = card.id;
+        render();
+      };
+      cardList.appendChild(div);
+    });
+  }
+
+  function renderCardDetails() {
+    const card = cards.find(c => c.id === selectedCardId);
+    if (!card) {
+      welcomeMessage.classList.remove('hidden');
+      detailsContent.classList.add('hidden');
+      return;
+    }
+
+    welcomeMessage.classList.add('hidden');
+    detailsContent.classList.remove('hidden');
+
+    const balance = card.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const available = card.creditLimit - balance;
+
+    const today = new Date();
+    const cutoffDate = new Date(today.getFullYear(), today.getMonth() + (today.getDate() > card.cutoffDay ? 1 : 0), card.cutoffDay);
+    const paymentDate = new Date(today.getFullYear(), today.getMonth() + (today.getDate() > card.paymentDay ? 1 : 0), card.paymentDay);
+    const daysToPayment = Math.ceil((paymentDate - today) / (1000 * 60 * 60 * 24));
+
+    detailsContent.innerHTML = `
+      <div class="details-header">
+        <h2>${card.nickname} <small>${card.bank} - ****${card.last4}</small></h2>
+        <div class="details-header-buttons">
+          <button class="btn" onclick="editCard('${card.id}')">Editar</button>
+          <button class="btn btn-danger" onclick="deleteCard('${card.id}')">Eliminar</button>
+          <button class="btn btn-success" onclick="transactionModal.style.display='flex'">Añadir Gasto/Pago</button>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><h4>Balance</h4><p>$${balance.toFixed(2)}</p></div>
+        <div class="stat-card"><h4>Disponible</h4><p>$${available.toFixed(2)}</p></div>
+        <div class="stat-card"><h4>Fecha de Corte</h4><p>${cutoffDate.toLocaleDateString()}</p></div>
+        <div class="stat-card"><h4>Pago en</h4><p>${daysToPayment} días (${paymentDate.toLocaleDateString()})</p></div>
+      </div>
+    `;
+  }
+
+  window.editCard = function (id) {
+    const card = cards.find(c => c.id === id);
+    if (!card) return;
+    document.getElementById('card-id').value = card.id;
+    document.getElementById('card-nickname').value = card.nickname;
+    document.getElementById('card-bank').value = card.bank;
+    document.getElementById('card-last4').value = card.last4;
+    document.getElementById('credit-limit').value = card.creditLimit;
+    document.getElementById('cutoff-day').value = card.cutoffDay;
+    document.getElementById('payment-day').value = card.paymentDay;
+    addCardModal.style.display = 'flex';
+  };
+
+  window.deleteCard = function (id) {
+    Swal.fire({
+      title: '¿Eliminar tarjeta?',
+      text: 'Esto eliminará todos sus movimientos',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then(result => {
+      if (result.isConfirmed) {
+        cards = cards.filter(c => c.id !== id);
+        selectedCardId = cards[0]?.id || null;
         save();
         render();
       }
-    } catch {}
+    });
   };
-  reader.readAsText(file);
-});
-themeBtn.addEventListener('click', () => {
-  document.body.classList.toggle('light-theme');
-  document.body.classList.toggle('dark-theme');
-  localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
-});
-function openModal(card = null) {
-  editMode = card?.id || null;
-  document.getElementById('modal-title').textContent = card ? 'Editar Tarjeta' : 'Añadir Tarjeta';
-  form.nickname.value = card?.nickname || '';
-  form.bank.value = card?.bank || '';
-  form.last4.value = card?.last4 || '';
-  form.limit.value = card?.limit || '';
-  form.cutoff.value = card?.cutoff || '';
-  form.payment.value = card?.payment || '';
-  modal.classList.remove('hidden');
-}
-function closeModal() {
-  modal.classList.add('hidden');
-  form.reset();
-  editMode = null;
-}
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  const data = {
-    id: editMode || Date.now().toString(),
-    nickname: form.nickname.value,
-    bank: form.bank.value,
-    last4: form.last4.value,
-    limit: parseFloat(form.limit.value),
-    cutoff: parseInt(form.cutoff.value),
-    payment: parseInt(form.payment.value),
-    transactions: []
-  };
-  if (editMode) {
-    cards = cards.map(c => (c.id === editMode ? data : c));
-  } else {
-    cards.push(data);
-  }
-  save();
-  closeModal();
-  selectedId = data.id;
-  render();
-});
-document.getElementById('add-card-btn').addEventListener('click', () => openModal());
 
-function render() {
-  cardList.innerHTML = '';
-  cards.forEach(card => {
-    const div = document.createElement('div');
-    div.className = 'card-item';
-    div.innerHTML = `<strong>${card.nickname}</strong><br><small>${card.bank} - **** ${card.last4}</small>`;
-    div.onclick = () => {
-      selectedId = card.id;
-      render();
-    };
-    cardList.appendChild(div);
-  });
-
-  const card = cards.find(c => c.id === selectedId);
-  if (!card) {
-    details.classList.add('hidden');
-    welcome.classList.remove('hidden');
-    return;
-  }
-  welcome.classList.add('hidden');
-  details.classList.remove('hidden');
-
-  const today = new Date();
-  const cutoff = getNextDate(card.cutoff);
-  const payment = getNextDate(card.payment);
-
-  details.innerHTML = `
-    <h2>${card.nickname} <small>${card.bank} - ****${card.last4}</small></h2>
-    <p><strong>Crédito disponible:</strong> $${card.limit.toFixed(2)}</p>
-    <p><strong>Próximo corte:</strong> ${cutoff.toLocaleDateString()} (en ${daysBetween(today, cutoff)} días)</p>
-    <p><strong>Fecha de pago:</strong> ${payment.toLocaleDateString()} (en ${daysBetween(today, payment)} días)</p>
-    <div class="buttons">
-      <button onclick="openModal(cards.find(c => c.id === '${card.id}'))">Editar</button>
-      <button onclick="deleteCard('${card.id}')">Eliminar</button>
-    </div>
-  `;
-}
-function getNextDate(day) {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth(), day);
-  if (d < now) d.setMonth(d.getMonth() + 1);
-  return d;
-}
-function daysBetween(a, b) {
-  return Math.ceil((b - a) / (1000 * 60 * 60 * 24));
-}
-function deleteCard(id) {
-  if (confirm('¿Eliminar tarjeta?')) {
-    cards = cards.filter(c => c.id !== id);
-    selectedId = null;
-    save();
-    render();
-  }
-}
-
-(function init() {
-  if (localStorage.getItem('theme') === 'light') {
-    document.body.classList.add('light-theme');
-  } else {
-    document.body.classList.add('dark-theme');
-  }
   load();
   render();
-})();
+
+  function render() {
+    renderCardList();
+    renderCardDetails();
+  }
+});
