@@ -670,35 +670,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Utility Functions ---
-    // getInstallmentProgress is no longer used for 'currentInstallment' display
-    // in renderCardDetails, as that is now calculated based on actual payments.
-    // Keeping it here if it's used elsewhere or for potential future use.
-    const getInstallmentProgress = (transaction) => {
-        if (transaction.type !== 'installment_purchase') return null;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Normalize to start of day
-        const purchaseDate = new Date(transaction.date);
-        purchaseDate.setHours(0, 0, 0, 0);
-        
-        let monthsPassed = (today.getFullYear() - purchaseDate.getFullYear()) * 12;
-        monthsPassed -= purchaseDate.getMonth();
-        monthsPassed += today.getMonth();
-
-        let currentInstallment = monthsPassed + 1;
-        
-        // Adjust if current day is before or on the purchase day of the month (for previous cycle payment)
-        if (today.getDate() <= purchaseDate.getDate() && monthsPassed > 0) {
-             currentInstallment = monthsPassed;
-        }
-
-        return {
-            currentInstallment: Math.max(1, Math.min(currentInstallment, transaction.installments)),
-        };
-    }
-
-    // `areInstallmentsActive` is now determined by whether remaining amount > 0,
-    // not just based on time. This is handled within renderCardDetails filter.
-    
     const calculatePeriodPayment = (card, cycleStartDate, cycleEndDate) => {
         let total = 0;
         
@@ -713,6 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Add monthly portions for active installment plans regardless of their purchase date
+        // This is a simplified approach. In reality, the monthly payment is part of the statement.
+        // For now, let's assume a portion of monthly installment contributes to period payment if not fully paid off.
         card.transactions.forEach(tx => {
             if (tx.type === 'installment_purchase') {
                 const totalPaidOnInstallment = card.transactions
@@ -720,9 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
 
                 if (totalPaidOnInstallment < tx.amount) { // Only if still active
-                    // This is a simplified approach. In reality, the monthly payment is part of the statement.
-                    // For now, let's assume monthly installment portion contributes to period payment if not fully paid off.
-                    // A more precise calculation would involve checking which monthly installments are due in the current cycle.
                     total += (tx.amount / tx.installments);
                 }
             }
@@ -746,76 +716,40 @@ document.addEventListener('DOMContentLoaded', () => {
     function getCardDates(cutoffDay, paymentDay) {
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Normalize to start of day
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth(); // 0-indexed
-        const currentDate = today.getDate();
 
-        // Determine the relevant cutoff month based on today's date
-        // If today's date is on or before the cutoff day, the current cycle's cutoff is in the current month.
-        // If today's date is after the cutoff day, the current cycle's cutoff was in the current month, and the next cycle has started.
-        // We want to display the *upcoming* cutoff date and payment date if today is before cutoff,
-        // or the *current cycle's* payment date if today is after cutoff.
-        
-        let cutoffMonth = currentMonth;
-        if (currentDate > cutoffDay) {
-            // If today is past the cutoff day of the current month, the *next* cutoff is in the next month.
-            cutoffMonth = currentMonth + 1;
+        // 1. Determine the "displayed" cutoff date
+        // This is always the cutoff day of the current month (or adjusted for max days)
+        let displayCutoffDate = new Date(today.getFullYear(), today.getMonth(), cutoffDay);
+        // Ensure cutoff day doesn't exceed month's max days (e.g., 31st of Feb)
+        const lastDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        if (cutoffDay > lastDayOfCurrentMonth) {
+            displayCutoffDate.setDate(lastDayOfCurrentMonth);
         }
 
-        const displayCutoffDate = new Date(currentYear, cutoffMonth, cutoffDay);
-        
-        // The payment date is in the same month as the cutoff, or the next month, depending on the paymentDay.
-        // If paymentDay is <= cutoffDay, it's typically for the *previous* cutoff.
-        // If paymentDay > cutoffDay, it's typically for the *current* cutoff.
-        // This logic is tricky because banks vary. Let's simplify: Payment is always after cutoff.
-        // So, if the payment day is *earlier* than the cutoff day, it must refer to the *next* month's payment for the *current* cutoff.
-        // If the payment day is *later* than the cutoff day, it refers to the *current* month's payment for the *previous* cutoff.
-
-        // Simpler approach for payment date: It's always in the month of the cutoff or the month after.
-        // If paymentDay is after cutoffDay, it likely relates to the statement that *just* ended (or will end this month).
-        // If paymentDay is before cutoffDay, it likely relates to the statement that *will end next month*.
-        // This is simplified to just check month of cutoff date:
-        let displayPaymentDate = new Date(displayCutoffDate.getFullYear(), displayCutoffDate.getMonth(), paymentDay);
-
-        // If payment day is before cutoff day, it implies the payment is for the *next* month's cycle.
-        // Example: Cutoff 15, Payment 5. If cutoff is Oct 15, payment is Nov 5.
-        // Example: Cutoff 5, Payment 15. If cutoff is Oct 5, payment is Oct 15.
-        // The displayPaymentDate is for the cycle ending on displayCutoffDate.
-
-        // Correctly determine displayPaymentDate based on displayCutoffDate:
-        if (paymentDay <= displayCutoffDate.getDate() && paymentDay <= cutoffDay) {
-            // If paymentDay is numerically less than or equal to cutoffDay, and also less than or equal to actual cutoff day,
-            // then payment is due in the *next* month relative to the displayCutoffDate.
-            displayPaymentDate.setMonth(displayPaymentDate.getMonth() + 1);
-        }
-        // else, payment is in the same month as displayCutoffDate (already set).
-
-        // Calculate 'cycleStartDate': This determines which transactions belong to the *current* statement.
-        // It's the day after the *previous* cutoff date relative to the *display* cutoff date.
-        let cycleStartDate;
-        const prevCutoffMonth = displayCutoffDate.getMonth() - 1;
-        cycleStartDate = new Date(displayCutoffDate.getFullYear(), prevCutoffMonth, cutoffDay + 1);
-        
-        // Edge case: If previous month leads to year change (Jan -> Dec)
-        if (prevCutoffMonth < 0) {
-            cycleStartDate = new Date(displayCutoffDate.getFullYear() - 1, 11, cutoffDay + 1);
+        // 2. Determine the "displayed" payment date
+        // This is always in the *next* month relative to the displayCutoffDate
+        let displayPaymentDate = new Date(displayCutoffDate.getFullYear(), displayCutoffDate.getMonth() + 1, paymentDay);
+        // Ensure payment day doesn't exceed month's max days
+        // Get the last day of the *target payment month* (which is displayCutoffDate's month + 1)
+        const lastDayOfPaymentTargetMonth = new Date(displayCutoffDate.getFullYear(), displayCutoffDate.getMonth() + 2, 0).getDate();
+        if (paymentDay > lastDayOfPaymentTargetMonth) {
+            displayPaymentDate.setDate(lastDayOfPaymentTargetMonth);
         }
 
-        // Adjust cycleStartDate if it's somehow in the future compared to displayCutoffDate
-        if (cycleStartDate >= displayCutoffDate) {
-             // This happens if cutoffDay is 31 and next month has fewer days,
-             // or if payment day logic pushed cutoff date forward.
-             // Re-evaluate cycle start for current active statement.
-             // The start of the current cycle is always the day after the last month's cutoff.
-             const actualCurrentMonthCutoff = new Date(currentYear, currentMonth, cutoffDay);
-             if (currentDate <= cutoffDay) {
-                 // Current cycle started last month
-                 cycleStartDate = new Date(currentYear, currentMonth - 1, cutoffDay + 1);
-                 if (currentMonth - 1 < 0) cycleStartDate = new Date(currentYear - 1, 11, cutoffDay + 1);
-             } else {
-                 // Current cycle started this month (after this month's cutoff)
-                 cycleStartDate = new Date(currentYear, currentMonth, cutoffDay + 1);
-             }
+        // 3. Determine the cycle start date for the displayed cycle
+        // This is the day after the *previous* month's cutoff day relative to the display cutoff date
+        let cycleStartMonth = displayCutoffDate.getMonth() - 1;
+        let cycleStartYear = displayCutoffDate.getFullYear();
+        if (cycleStartMonth < 0) { // If current month is Jan, previous is Dec of previous year
+            cycleStartMonth = 11;
+            cycleStartYear--;
+        }
+        let cycleStartDate = new Date(cycleStartYear, cycleStartMonth, cutoffDay + 1);
+        // Adjust for end of month in case cutoffDay + 1 overflows (e.g., Feb 31 -> Mar 2)
+        // If we want it to clamp to the end of the *previous* month, this adjustment is needed.
+        const lastDayOfCycleStartMonth = new Date(cycleStartDate.getFullYear(), cycleStartDate.getMonth() + 1, 0).getDate();
+        if (cycleStartDate.getDate() > lastDayOfCycleStartMonth) { // This check applies if (cutoffDay + 1) exceeded lastDayOfCycleStartMonth
+            cycleStartDate.setDate(lastDayOfCycleStartMonth);
         }
 
         // Calculate days until payment
