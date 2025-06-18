@@ -96,3 +96,108 @@
             <form id="add-expense-form">
                 <input type="hidden" id="expense-card-id">
                 <div class="form-group">
+                    <label for="expense-description">Descripción</label>
+                    <input type="text" id="expense-description" placeholder="Ej: Cena con amigos" required>
+                </div>
+                <div class="form-group">
+                    <label for="expense-amount">Monto</label>
+                    <input type="number" id="expense-amount" min="0" step="0.01" placeholder="50.00" required>
+                </div>
+                 <div class="form-group">
+                    <label for="expense-date">Fecha</label>
+                    <input type="date" id="expense-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="expense-category">Categoría (Opcional)</label>
+                    <select id="expense-category">
+                        <option value="">Sin Categoría</option>
+                        <option value="food">Comida</option>
+                        <option value="transport">Transporte</option>
+                        <option value="shopping">Compras</option>
+                        <option value="services">Servicios</option>
+                        <option value="entertainment">Entretenimiento</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">Guardar Gasto</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para añadir compra a meses -->
+    <div id="add-installment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Añadir Compra a Meses</h2>
+            <form id="add-installment-form">
+                <input type="hidden" id="installment-card-id">
+                <div class="form-group">
+                    <label for="installment-description">Descripción</label>
+                    <input type="text" id="installment-description" placeholder="Ej: Nuevo Teléfono" required>
+                </div>
+                <div class="form-group">
+                    <label for="installment-total-amount">Monto Total de la Compra</label>
+                    <input type="number" id="installment-total-amount" min="0" step="0.01" placeholder="1200.00" required>
+                </div>
+                 <div class="form-group">
+                    <label for="installment-date">Fecha de la Compra</label>
+                    <input type="date" id="installment-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="installment-months">Número de Mensualidades</label>
+                    <input type="number" id="installment-months" min="2" placeholder="12" required>
+                </div>
+                 <div class="form-group">
+                    <label for="installment-category">Categoría (Opcional)</label>
+                    <select id="installment-category">
+                        <option value="">Sin Categoría</option>
+                        <option value="food">Comida</option>
+                        <option value="transport">Transporte</option>
+                        <option value="shopping">Compras</option>
+                        <option value="services">Servicios</option>
+                        <option value="entertainment">Entretenimiento</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">Guardar Compra</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal para añadir pago -->
+    <div id="add-payment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Realizar Pago</h2>
+            <form id="add-payment-form">
+                <input type="hidden" id="payment-card-id">
+                <div class="form-group">
+                    <label for="payment-type">Tipo de Pago</label>
+                    <select id="payment-type" required>
+                        <option value="general">Pago General a la Tarjeta</option>
+                        <option value="installment">Abono a Compra a Meses Específica</option>
+                    </select>
+                </div>
+                <div class="form-group hidden" id="installment-select-group">
+                    <label for="payment-target-installment">Seleccionar Compra a Meses</label>
+                    <select id="payment-target-installment">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="payment-amount">Monto del Pago</label>
+                    <input type="number" id="payment-amount" min="0" step="0.01" placeholder="100.00" required>
+                </div>
+                 <div class="form-group">
+                    <label for="payment-date">Fecha del Pago</label>
+                    <input type="date" id="payment-date" required>
+                </div>
+                <button type="submit" class="btn btn-success">Guardar Pago</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="script.js"></script>
+</body>
+</html>
