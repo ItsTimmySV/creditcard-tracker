@@ -139,24 +139,19 @@ header h1 {
     align-items: flex-start;
 }
 
-.left-column {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    position: sticky;
-    top: 2rem;
-}
-
+/* Summary container is now a top-level grid item */
 .summary-container {
+    grid-column: 1 / -1; /* Span all columns on large screens */
     background-color: var(--card-bg);
     border-radius: var(--border-radius);
     padding: 1.5rem;
     box-shadow: var(--shadow);
-    margin-bottom: 0;
+    margin-bottom: 0; /* Adjust if needed, but grid gap should handle spacing */
+    display: none; /* Hidden by default and only shown by JS when data exists */
 }
 
-.summary-container.hidden {
-    display: none;
+.summary-container.visible {
+    display: block; /* Show when JS determines it should be visible */
 }
 
 .summary-container h3 {
@@ -192,6 +187,15 @@ header h1 {
     color: var(--text-secondary);
     text-align: right;
     display: block;
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: sticky;
+    top: 2rem;
+    grid-column: 1 / 2; /* Explicitly place in the first column on large screens */
 }
 
 .data-management-container {
@@ -301,6 +305,7 @@ header h1 {
     box-shadow: var(--shadow);
     height: calc(100vh - 120px);
     overflow-y: auto;
+    grid-column: 2 / -1; /* Explicitly place in the second column on large screens */
 }
 .card-details-container::-webkit-scrollbar { width: 6px; }
 .card-details-container::-webkit-scrollbar-track { background: var(--card-bg); }
@@ -724,8 +729,18 @@ header h1 {
     }
 
     .container {
-        grid-template-columns: 1fr; /* Stacks columns */
+        grid-template-columns: 1fr; /* Stacks columns, summary will span 1fr, left-column will span 1fr but be fixed */
         padding: 1rem;
+        grid-template-areas: 
+            "summary"
+            "content"; /* Define grid areas for mobile */
+    }
+
+    /* Assign elements to grid areas */
+    .summary-container {
+        grid-column: unset; /* Reset spanning columns */
+        grid-area: summary; /* Place in summary area */
+        margin-bottom: 1rem; /* Add some margin below it on mobile */
     }
 
     /* Make left column slide out */
@@ -742,8 +757,18 @@ header h1 {
         transition: transform 0.3s ease-out; /* Smooth slide transition */
         padding: 1.5rem 1rem; /* Adjust padding for the menu */
         overflow-y: auto; /* Allow scrolling if content overflows */
-        /* Ensure its children don't rely on max-height being relative to the main grid */
-        max-height: none; 
+        max-height: none; /* Reset max-height for the menu */
+        grid-column: unset; /* Remove grid column assignment when it becomes a fixed menu */
+        /* Flex children of left-column should now define its scrollable content */
+        justify-content: flex-start; /* Align content to the top within menu */
+    }
+
+    /* The main content area */
+    .card-details-container {
+        height: auto; /* Allow height to adapt */
+        max-height: none;
+        grid-column: unset; /* Reset spanning columns */
+        grid-area: content; /* Place in content area */
     }
 
     /* When menu-open class is on body, show the menu and overlay */
@@ -756,10 +781,10 @@ header h1 {
         opacity: 1;
     }
 
-    /* The main content area */
-    .card-details-container {
-        height: auto; /* Allow height to adapt */
-        max-height: none;
+    /* Adjust max-height for card-list-container inside the mobile menu */
+    .card-list-container {
+        max-height: calc(100vh - 100px); /* Max height relative to mobile menu height */
+        /* 100px is arbitrary, adjust based on padding and other elements in left-column */
     }
 }
 

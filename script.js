@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeSwitcher = document.getElementById('theme-switcher');
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const menuOverlay = document.getElementById('menu-overlay');
-    const leftColumnEl = document.querySelector('.left-column');
+    const leftColumnEl = document.querySelector('.left-column'); // Keep this, it's the actual menu container now
     const cardListEl = document.getElementById('card-list');
     const addCardBtn = document.getElementById('add-card-btn');
     const addCardModal = document.getElementById('add-card-modal');
@@ -64,10 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Render Functions ---
     const renderSummary = () => {
         if (cards.length === 0) {
-            summaryContainerEl.classList.add('hidden');
+            summaryContainerEl.classList.remove('visible'); // Use visible class
             return;
         }
-        summaryContainerEl.classList.remove('hidden');
+        summaryContainerEl.classList.add('visible'); // Use visible class
 
         const totalBalance = cards.reduce((total, card) => {
             const cardBalance = card.transactions.reduce((sum, tx) => {
