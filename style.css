@@ -465,6 +465,30 @@ header h1 {
     gap: 0.5rem;
 }
 
+.transactions-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: flex-end; /* Align inputs and button at the bottom */
+}
+
+.transactions-filters .form-group {
+    margin-bottom: 0; /* Remove default form-group margin for filters */
+    flex: 1; /* Allow inputs to grow */
+    min-width: 150px; /* Minimum width for inputs */
+}
+
+.transactions-filters .form-group label {
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.transactions-filters .btn-secondary {
+    padding: 0.75rem 1rem; /* Adjust padding for button */
+    height: 40px; /* Match input height roughly */
+}
+
 .transaction-list {
     list-style: none;
     padding: 0;
@@ -776,6 +800,27 @@ header h1 {
     }
     .stat-card p {
         font-size: 1.25rem;
+    }
+
+    .transactions-header {
+        flex-direction: column; /* Stack header and button group */
+        align-items: flex-start;
+    }
+    .transactions-header .btn-group {
+        width: 100%;
+        margin-top: 1rem; /* Space between title and buttons */
+    }
+    .transactions-filters {
+        flex-direction: column; /* Stack filter inputs */
+        width: 100%;
+        gap: 0.75rem;
+    }
+    .transactions-filters .form-group {
+        width: 100%; /* Full width for inputs */
+        min-width: unset;
+    }
+    .transactions-filters .btn-secondary {
+        width: 100%; /* Full width for reset button */
     }
 
     .transaction-item {

@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // State management
     let cards = [];
     let selectedCardId = null;
+    const cardFilters = new Map(); // Map to store filter dates for each card: Map<cardId, {startDate: string, endDate: string}>
 
     // DOM Elements
     const themeSwitcher = document.getElementById('theme-switcher');
@@ -191,6 +192,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return totalPaidOnInstallment < tx.amount; // Still has remaining balance
         });
 
+        // Retrieve current filter dates for this card, or set defaults
+        const currentFilters = cardFilters.get(card.id) || { startDate: '', endDate: '' };
+
         detailsContentEl.innerHTML = `
             <div class="details-header">
                 <div>
@@ -277,53 +281,110 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn" id="add-installment-detail-btn" data-id="${card.id}"><i class="fas fa-calendar-plus"></i> A Meses</button>
                     </div>
                 </div>
+                <div class="transactions-filters">
+                    <div class="form-group">
+                        <label for="filter-start-date">Desde:</label>
+                        <input type="date" id="filter-start-date" value="${currentFilters.startDate}">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-end-date">Hasta:</label>
+                        <input type="date" id="filter-end-date" value="${currentFilters.endDate}">
+                    </div>
+                    <button class="btn btn-secondary" id="reset-filters-btn">Reset</button>
+                </div>
                 <ul class="transaction-list" id="transaction-list-ul">
-                    ${card.transactions.length === 0 ? '<li>No hay movimientos.</li>' : ''}
-                    ${[...card.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).map(tx => {
-                        const isPayment = tx.amount < 0;
-                        const isInstallmentPurchase = tx.type === 'installment_purchase';
-                        const isInstallmentPayment = tx.type === 'installment_payment';
-                        let installmentInfo = '';
-                        if(isInstallmentPurchase) {
-                             const monthlyPayment = tx.amount / tx.installments;
-                             const totalPaidOnInstallment = card.transactions
-                                .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
-                                .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
-                             const remainingAmount = tx.amount - totalPaidOnInstallment;
-                             installmentInfo = `<div class="installment-info">Total: $${tx.amount.toFixed(2)} | Pagado: $${totalPaidOnInstallment.toFixed(2)} | Restante: $${remainingAmount.toFixed(2)}</div>`;
-                        } else if (isInstallmentPayment) {
-                            const targetInstallment = card.transactions.find(t => t.id === tx.targetInstallmentId);
-                            if (targetInstallment) {
-                                installmentInfo = `<div class="installment-info">Abono a: ${targetInstallment.description}</div>`;
+                    ${(() => {
+                        let displayedTransactions = [...card.transactions]; // Make a copy for filtering
+                        
+                        // Apply date filters
+                        if (currentFilters.startDate) {
+                            const start = new Date(currentFilters.startDate);
+                            displayedTransactions = displayedTransactions.filter(tx => new Date(tx.date) >= start);
+                        }
+                        if (currentFilters.endDate) {
+                            const end = new Date(currentFilters.endDate);
+                            end.setHours(23, 59, 59, 999); // Set to end of the day
+                            displayedTransactions = displayedTransactions.filter(tx => new Date(tx.date) <= end);
+                        }
+
+                        // Sort filtered transactions
+                        displayedTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                        if (displayedTransactions.length === 0) {
+                            return '<li>No hay movimientos para el rango de fechas seleccionado.</li>';
+                        }
+
+                        return displayedTransactions.map(tx => {
+                            const isPayment = tx.amount < 0;
+                            const isInstallmentPurchase = tx.type === 'installment_purchase';
+                            const isInstallmentPayment = tx.type === 'installment_payment';
+                            let installmentInfo = '';
+                            if(isInstallmentPurchase) {
+                                 const monthlyPayment = tx.amount / tx.installments;
+                                 const totalPaidOnInstallment = card.transactions
+                                    .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                                    .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
+                                 const remainingAmount = tx.amount - totalPaidOnInstallment;
+                                 installmentInfo = `<div class="installment-info">Total: $${tx.amount.toFixed(2)} | Pagado: $${totalPaidOnInstallment.toFixed(2)} | Restante: $${remainingAmount.toFixed(2)}</div>`;
+                            } else if (isInstallmentPayment) {
+                                const targetInstallment = card.transactions.find(t => t.id === tx.targetInstallmentId);
+                                if (targetInstallment) {
+                                    installmentInfo = `<div class="installment-info">Abono a: ${targetInstallment.description}</div>`;
+                                }
                             }
-                        }
 
-                        // Determine class for amount color
-                        let amountClass = '';
-                        if (tx.type === 'general_payment' || tx.type === 'installment_payment') {
-                            amountClass = 'payment';
-                        } else if (tx.type === 'expense' || tx.type === 'installment_purchase') {
-                            amountClass = 'expense';
-                        }
+                            // Determine class for amount color
+                            let amountClass = '';
+                            if (tx.type === 'general_payment' || tx.type === 'installment_payment') {
+                                amountClass = 'payment';
+                            } else if (tx.type === 'expense' || tx.type === 'installment_purchase') {
+                                amountClass = 'expense';
+                            }
 
-                        return `
-                        <li class="transaction-item ${amountClass}">
-                            <div>
-                                <div class="description">${tx.description}</div>
-                                ${installmentInfo}
-                                <div class="date">${new Date(tx.date).toLocaleDateString('es-ES')}</div>
-                            </div>
-                            <div class="transaction-right-side">
-                                <div class="amount">${isPayment ? '-$' + Math.abs(tx.amount).toFixed(2) : '$' + tx.amount.toFixed(2)}</div>
-                                <button class="delete-transaction-btn" data-card-id="${card.id}" data-tx-id="${tx.id}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </li>`
-                    }).join('')}
+                            return `
+                            <li class="transaction-item ${amountClass}">
+                                <div>
+                                    <div class="description">${tx.description}</div>
+                                    ${installmentInfo}
+                                    <div class="date">${new Date(tx.date).toLocaleDateString('es-ES')}</div>
+                                </div>
+                                <div class="transaction-right-side">
+                                    <div class="amount">${isPayment ? '-$' + Math.abs(tx.amount).toFixed(2) : '$' + tx.amount.toFixed(2)}</div>
+                                    <button class="delete-transaction-btn" data-card-id="${card.id}" data-tx-id="${tx.id}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </li>`;
+                        }).join('');
+                    })()}
                 </ul>
             </div>
         `;
+
+        // Get filter elements AFTER they are rendered
+        const filterStartDateInput = document.getElementById('filter-start-date');
+        const filterEndDateInput = document.getElementById('filter-end-date');
+        const resetFiltersBtn = document.getElementById('reset-filters-btn');
+
+        // Add event listeners to filter inputs
+        filterStartDateInput.addEventListener('change', () => {
+            cardFilters.set(card.id, {
+                startDate: filterStartDateInput.value,
+                endDate: filterEndDateInput.value
+            });
+            renderCardDetails(); // Re-render to apply filter
+        });
+        filterEndDateInput.addEventListener('change', () => {
+            cardFilters.set(card.id, {
+                startDate: filterStartDateInput.value,
+                endDate: filterEndDateInput.value
+            });
+            renderCardDetails(); // Re-render to apply filter
+        });
+        resetFiltersBtn.addEventListener('click', () => {
+            cardFilters.delete(card.id); // Remove filters for this card
+            renderCardDetails(); // Re-render to show all transactions
+        });
 
         document.getElementById('add-expense-detail-btn').addEventListener('click', handleOpenExpenseModal);
         document.getElementById('add-installment-detail-btn').addEventListener('click', handleOpenInstallmentModal);
