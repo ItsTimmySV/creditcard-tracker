@@ -98,6 +98,37 @@ header h1 {
 .light-theme .fa-moon { display: none; }
 .dark-theme .fa-sun { display: none; }
 
+/* New: Hamburger menu button */
+.menu-toggle-btn {
+    display: none; /* Hidden by default on large screens */
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    /* Removed margin-right to let flexbox handle spacing in header */
+    transition: color 0.3s;
+}
+
+.menu-toggle-btn:hover {
+    color: var(--accent-color);
+}
+
+/* New: Menu overlay */
+.menu-overlay {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 999; /* Below modals, above main content */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
 .container {
     display: grid;
     grid-template-columns: 350px 1fr;
@@ -434,35 +465,6 @@ header h1 {
     gap: 0.5rem;
 }
 
-/* New styles for transaction filters section */
-.transaction-filters {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background-color: var(--bg-color);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
-.transaction-filters .form-group {
-    margin-bottom: 0; /* Remove margin from individual form groups within filter */
-}
-
-.transaction-filters .btn {
-    align-self: flex-end; /* Align buttons to the bottom of the grid row */
-    height: 44px; /* Match input height for visual alignment */
-    margin-top: auto; /* Push buttons to the bottom if labels make inputs taller */
-}
-
-#view-more-transactions-btn {
-    width: 100%;
-    margin-top: 1.5rem;
-    padding: 0.8rem 1.5rem;
-    text-align: center;
-}
-
 .transaction-list {
     list-style: none;
     padding: 0;
@@ -684,20 +686,56 @@ header h1 {
 }
 
 @media (max-width: 900px) {
-    .container {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-    }
-    .left-column {
-        position: static;
-        top: 0;
-    }
-    .card-list-container, .card-details-container {
-        height: auto;
-        max-height: none;
-    }
     header {
+        padding: 1rem; /* Adjust padding for smaller screens */
+    }
+    .menu-toggle-btn {
+        display: block; /* Show hamburger button */
+        order: -1; /* Place it at the beginning of the flex container */
+    }
+    header h1 {
+        flex-grow: 1; /* Allow title to take remaining space */
+        text-align: center; /* Center the title */
+        margin: 0; /* Reset margin */
+    }
+
+    .container {
+        grid-template-columns: 1fr; /* Stacks columns */
         padding: 1rem;
+    }
+
+    /* Make left column slide out */
+    .left-column {
+        position: fixed; /* Override static/sticky */
+        top: 0;
+        left: 0;
+        width: 280px; /* Fixed width for the menu */
+        height: 100vh; /* Full viewport height */
+        background-color: var(--card-bg); /* Ensure it has a background */
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        z-index: 1000; /* Above main content */
+        transform: translateX(-100%); /* Start off-screen */
+        transition: transform 0.3s ease-out; /* Smooth slide transition */
+        padding: 1.5rem 1rem; /* Adjust padding for the menu */
+        overflow-y: auto; /* Allow scrolling if content overflows */
+        /* Ensure its children don't rely on max-height being relative to the main grid */
+        max-height: none; 
+    }
+
+    /* When menu-open class is on body, show the menu and overlay */
+    body.menu-open .left-column {
+        transform: translateX(0); /* Slide into view */
+    }
+
+    body.menu-open .menu-overlay {
+        display: block;
+        opacity: 1;
+    }
+
+    /* The main content area */
+    .card-details-container {
+        height: auto; /* Allow height to adapt */
+        max-height: none;
     }
 }
 
@@ -714,6 +752,10 @@ header h1 {
     }
     .card-details-container, .card-list-container, .summary-container {
         padding: 1rem;
+    }
+
+    .left-column {
+        width: 80%; /* Make it responsive to smaller widths */
     }
 
     .details-header {
@@ -734,14 +776,6 @@ header h1 {
     }
     .stat-card p {
         font-size: 1.25rem;
-    }
-
-    /* Filter section adjustments for small screens */
-    .transaction-filters {
-        grid-template-columns: 1fr; /* Stack elements vertically */
-    }
-    .transaction-filters .btn {
-        width: 100%; /* Make buttons full width */
     }
 
     .transaction-item {

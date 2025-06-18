@@ -2,12 +2,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // State management
     let cards = [];
     let selectedCardId = null;
-    let transactionsDisplayLimit = 10; // Default to show 10 transactions
-    let filterStartDate = null;
-    let filterEndDate = null;
 
     // DOM Elements
     const themeSwitcher = document.getElementById('theme-switcher');
+    const menuToggleBtn = document.getElementById('menu-toggle-btn');
+    const menuOverlay = document.getElementById('menu-overlay');
+    const leftColumnEl = document.querySelector('.left-column');
     const cardListEl = document.getElementById('card-list');
     const addCardBtn = document.getElementById('add-card-btn');
     const addCardModal = document.getElementById('add-card-modal');
@@ -129,10 +129,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 cardEl.addEventListener('click', () => {
                     selectedCardId = card.id;
-                    transactionsDisplayLimit = 10; // Reset display limit when switching cards
-                    filterStartDate = null; // Clear filters when switching cards
-                    filterEndDate = null; // Clear filters when switching cards
                     render();
+                    // Close the menu if a card is selected on mobile
+                    if (window.innerWidth <= 900) {
+                        document.body.classList.remove('menu-open');
+                    }
                 });
                 cardListEl.appendChild(cardEl);
             });
@@ -189,28 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
             return totalPaidOnInstallment < tx.amount; // Still has remaining balance
         });
-
-        // Transaction filtering and display limit logic
-        let transactionsToDisplay = [...card.transactions];
-
-        // Apply date filters
-        if (filterStartDate) {
-            const start = new Date(filterStartDate);
-            start.setHours(0, 0, 0, 0);
-            transactionsToDisplay = transactionsToDisplay.filter(tx => new Date(tx.date) >= start);
-        }
-        if (filterEndDate) {
-            const end = new Date(filterEndDate);
-            end.setHours(23, 59, 59, 999); // Include full end day
-            transactionsToDisplay = transactionsToDisplay.filter(tx => new Date(tx.date) <= end);
-        }
-
-        // Sort by date (most recent first)
-        transactionsToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        const hasMoreTransactions = transactionsToDisplay.length > transactionsDisplayLimit;
-        const limitedTransactions = transactionsToDisplay.slice(0, transactionsDisplayLimit);
-
 
         detailsContentEl.innerHTML = `
             <div class="details-header">
@@ -298,24 +277,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn" id="add-installment-detail-btn" data-id="${card.id}"><i class="fas fa-calendar-plus"></i> A Meses</button>
                     </div>
                 </div>
-
-                <!-- Transaction Filters Section -->
-                <div class="transaction-filters">
-                    <div class="form-group">
-                        <label for="filter-start-date">Desde:</label>
-                        <input type="date" id="filter-start-date" value="${filterStartDate || ''}">
-                    </div>
-                    <div class="form-group">
-                        <label for="filter-end-date">Hasta:</label>
-                        <input type="date" id="filter-end-date" value="${filterEndDate || ''}">
-                    </div>
-                    <button class="btn" id="apply-filter-btn"><i class="fas fa-filter"></i> Filtrar</button>
-                    <button class="btn btn-secondary" id="clear-filter-btn"><i class="fas fa-times"></i> Limpiar</button>
-                </div>
-
                 <ul class="transaction-list" id="transaction-list-ul">
-                    ${limitedTransactions.length === 0 ? '<li>No hay movimientos.</li>' : ''}
-                    ${limitedTransactions.map(tx => {
+                    ${card.transactions.length === 0 ? '<li>No hay movimientos.</li>' : ''}
+                    ${[...card.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).map(tx => {
                         const isPayment = tx.amount < 0;
                         const isInstallmentPurchase = tx.type === 'installment_purchase';
                         const isInstallmentPayment = tx.type === 'installment_payment';
@@ -358,26 +322,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         </li>`
                     }).join('')}
                 </ul>
-
-                <!-- View More Button -->
-                <button id="view-more-transactions-btn" class="btn btn-secondary ${hasMoreTransactions ? '' : 'hidden'}">Ver más movimientos</button>
             </div>
         `;
 
-        // Re-attach event listeners after innerHTML update
         document.getElementById('add-expense-detail-btn').addEventListener('click', handleOpenExpenseModal);
         document.getElementById('add-installment-detail-btn').addEventListener('click', handleOpenInstallmentModal);
         document.getElementById('add-payment-detail-btn').addEventListener('click', handleOpenPaymentModal);
         document.getElementById('delete-card-btn').addEventListener('click', handleDeleteCard);
         
+        // Add event listeners for new delete transaction buttons
         document.querySelectorAll('.delete-transaction-btn').forEach(button => {
             button.addEventListener('click', handleDeleteTransaction);
         });
-
-        // Event listeners for new filter functionality
-        document.getElementById('apply-filter-btn').addEventListener('click', handleApplyFilter);
-        document.getElementById('clear-filter-btn').addEventListener('click', handleClearFilters);
-        document.getElementById('view-more-transactions-btn').addEventListener('click', handleViewMoreTransactions);
     };
     
     const render = () => {
@@ -394,8 +350,17 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('theme', document.body.className);
     };
 
+    // New: Toggle mobile menu visibility
+    const toggleMenu = () => {
+        document.body.classList.toggle('menu-open');
+    };
+
     const handleOpenModal = (modal) => {
         modal.style.display = 'block';
+        // Close mobile menu if open when a modal appears
+        if (document.body.classList.contains('menu-open')) {
+            document.body.classList.remove('menu-open');
+        }
     };
 
     const handleCloseModals = () => {
@@ -421,9 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
         addCardForm.reset();
         handleCloseModals();
         selectedCardId = newCard.id;
-        transactionsDisplayLimit = 10; // Reset display limit for new card
-        filterStartDate = null;
-        filterEndDate = null;
         render();
         Swal.fire('¡Éxito!', 'Tarjeta añadida correctamente.', 'success');
     };
@@ -511,9 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
             card.transactions.push(newExpense);
             addExpenseForm.reset();
             handleCloseModals();
-            transactionsDisplayLimit = 10; // Reset display limit after adding new transaction
-            filterStartDate = null; // Clear filters
-            filterEndDate = null;
             render();
             Swal.fire('¡Éxito!', 'Gasto registrado.', 'success');
         }
@@ -536,9 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
             card.transactions.push(newInstallmentPurchase);
             addInstallmentForm.reset();
             handleCloseModals();
-            transactionsDisplayLimit = 10; // Reset display limit after adding new transaction
-            filterStartDate = null; // Clear filters
-            filterEndDate = null;
             render();
             Swal.fire('¡Éxito!', 'Compra a meses registrada.', 'success');
         }
@@ -585,9 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
             card.transactions.push(newPayment);
             addPaymentForm.reset();
             handleCloseModals();
-            transactionsDisplayLimit = 10; // Reset display limit after adding new transaction
-            filterStartDate = null; // Clear filters
-            filterEndDate = null;
             render();
             Swal.fire('¡Éxito!', 'Pago registrado correctamente.', 'success');
         }
@@ -608,9 +561,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.isConfirmed) {
                 cards = cards.filter(c => c.id !== cardId);
                 selectedCardId = null;
-                transactionsDisplayLimit = 10; // Reset limit when deleting card
-                filterStartDate = null; // Clear filters
-                filterEndDate = null;
                 render();
                 Swal.fire('¡Borrada!', 'Tu tarjeta ha sido eliminada.', 'success');
             }
@@ -634,10 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.isConfirmed) {
                 const card = cards.find(c => c.id === cardId);
                 if (card) {
+                    // Filter out the transaction to be deleted
                     card.transactions = card.transactions.filter(tx => tx.id !== txId);
-                    transactionsDisplayLimit = 10; // Reset display limit after deletion
-                    filterStartDate = null; // Clear filters
-                    filterEndDate = null;
                     render();
                     Swal.fire('¡Eliminado!', 'El movimiento ha sido eliminado.', 'success');
                 } else {
@@ -717,9 +665,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
                         });
                         selectedCardId = cards.length > 0 ? cards[0].id : null;
-                        transactionsDisplayLimit = 10; // Reset display limit after import
-                        filterStartDate = null; // Clear filters
-                        filterEndDate = null;
                         render();
                         Swal.fire('¡Importado!', 'Tus datos han sido importados correctamente.', 'success');
                     }
@@ -739,35 +684,6 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     };
 
-    const handleApplyFilter = () => {
-        const startDateInput = document.getElementById('filter-start-date');
-        const endDateInput = document.getElementById('filter-end-date');
-
-        const startDateValue = startDateInput.value;
-        const endDateValue = endDateInput.value;
-
-        if (startDateValue && endDateValue && new Date(startDateValue) > new Date(endDateValue)) {
-            Swal.fire('Error', 'La fecha "Desde" no puede ser posterior a la fecha "Hasta".', 'error');
-            return;
-        }
-
-        filterStartDate = startDateValue;
-        filterEndDate = endDateValue;
-        transactionsDisplayLimit = 10; // Reset limit when applying new filter
-        render();
-    };
-
-    const handleClearFilters = () => {
-        filterStartDate = null;
-        filterEndDate = null;
-        transactionsDisplayLimit = 10; // Reset limit when clearing filters
-        render(); // This will re-render and clear the input fields via renderCardDetails
-    };
-
-    const handleViewMoreTransactions = () => {
-        transactionsDisplayLimit += 10; // Load 10 more transactions
-        render();
-    };
 
     // --- Utility Functions ---
     const calculatePeriodPayment = (card, cycleStartDate, cycleEndDate) => {
@@ -958,4 +874,8 @@ document.addEventListener('DOMContentLoaded', () => {
     exportDataBtn.addEventListener('click', handleExportData);
     importDataBtn.addEventListener('click', handleImportClick);
     importFileInput.addEventListener('change', handleImportFile);
+
+    // New: Mobile menu toggle event listeners
+    menuToggleBtn.addEventListener('click', toggleMenu);
+    menuOverlay.addEventListener('click', toggleMenu); // Close menu when clicking overlay
 });
