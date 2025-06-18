@@ -234,15 +234,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
                         const remainingAmount = tx.amount - totalPaidOnInstallment;
 
-                        // Calculate current installment based on elapsed months (for display purposes)
-                        const { currentInstallment } = getInstallmentProgress(tx);
+                        // Calculate current installment based on actual payments made
+                        const actualInstallmentPaymentsCount = card.transactions.filter(t => 
+                            t.type === 'installment_payment' && t.targetInstallmentId === tx.id
+                        ).length;
+
                         const progress = ( (tx.amount - remainingAmount) / tx.amount) * 100; // Progress based on actual amount paid
 
                         return `
                         <div class="installment-plan-item">
                             <div class="installment-plan-item-header">
                                 <span class="description">${tx.description}</span>
-                                <span class="progress-text">${(tx.amount - remainingAmount).toFixed(2)} / ${tx.amount.toFixed(2)} (${currentInstallment} de ${tx.installments} meses)</span>
+                                <span class="progress-text">${(tx.amount - remainingAmount).toFixed(2)} / ${tx.amount.toFixed(2)} (${actualInstallmentPaymentsCount} de ${tx.installments} meses)</span>
                             </div>
                             <div class="progress-bar-container">
                                 <div class="progress-bar" style="width: ${progress}%"></div>
@@ -667,12 +670,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Utility Functions ---
+    // getInstallmentProgress is no longer used for 'currentInstallment' display
+    // in renderCardDetails, as that is now calculated based on actual payments.
+    // Keeping it here if it's used elsewhere or for potential future use.
     const getInstallmentProgress = (transaction) => {
-        // This function calculates progress based on elapsed time, not actual payments
-        // Used for the "X of Y months" display
         if (transaction.type !== 'installment_purchase') return null;
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0); // Normalize to start of day
         const purchaseDate = new Date(transaction.date);
         purchaseDate.setHours(0, 0, 0, 0);
         
