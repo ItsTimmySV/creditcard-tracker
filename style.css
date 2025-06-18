@@ -434,6 +434,35 @@ header h1 {
     gap: 0.5rem;
 }
 
+/* New styles for transaction filters section */
+.transaction-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.transaction-filters .form-group {
+    margin-bottom: 0; /* Remove margin from individual form groups within filter */
+}
+
+.transaction-filters .btn {
+    align-self: flex-end; /* Align buttons to the bottom of the grid row */
+    height: 44px; /* Match input height for visual alignment */
+    margin-top: auto; /* Push buttons to the bottom if labels make inputs taller */
+}
+
+#view-more-transactions-btn {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.8rem 1.5rem;
+    text-align: center;
+}
+
 .transaction-list {
     list-style: none;
     padding: 0;
@@ -705,6 +734,14 @@ header h1 {
     }
     .stat-card p {
         font-size: 1.25rem;
+    }
+
+    /* Filter section adjustments for small screens */
+    .transaction-filters {
+        grid-template-columns: 1fr; /* Stack elements vertically */
+    }
+    .transaction-filters .btn {
+        width: 100%; /* Make buttons full width */
     }
 
     .transaction-item {
