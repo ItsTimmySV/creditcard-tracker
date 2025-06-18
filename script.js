@@ -81,40 +81,77 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderCardDetails() {
-    if (!selectedCardId) {
-      welcomeMessageEl.classList.remove('hidden');
-      detailsContentEl.classList.add('hidden');
-      summaryContainerEl.classList.add('hidden');
-      return;
-    }
-
-    const card = cards.find(c => c.id === selectedCardId);
-    if (!card) return;
-
-    welcomeMessageEl.classList.add('hidden');
-    detailsContentEl.classList.remove('hidden');
-    summaryContainerEl.classList.remove('hidden');
-
-    const balance = card.transactions.reduce((acc, tx) => acc + tx.amount, 0);
-    const availableCredit = card.creditLimit - balance;
-
-    detailsContentEl.innerHTML = `
-      <div class="details-header">
-        <h2>${card.nickname} <small>${card.bank} - **** ${card.last4}</small></h2>
-      </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h4>Balance actual</h4>
-          <p>$${balance.toFixed(2)}</p>
-        </div>
-        <div class="stat-card">
-          <h4>Crédito disponible</h4>
-          <p>$${availableCredit.toFixed(2)}</p>
-        </div>
-      </div>
-    `;
+function renderCardDetails() {
+  if (!selectedCardId) {
+    welcomeMessageEl.classList.remove('hidden');
+    detailsContentEl.classList.add('hidden');
+    summaryContainerEl.classList.add('hidden');
+    return;
   }
+
+  const card = cards.find(c => c.id === selectedCardId);
+  if (!card) return;
+
+  welcomeMessageEl.classList.add('hidden');
+  detailsContentEl.classList.remove('hidden');
+  summaryContainerEl.classList.remove('hidden');
+
+  const balance = card.transactions.reduce((acc, tx) => acc + tx.amount, 0);
+  const availableCredit = card.creditLimit - balance;
+
+  const today = new Date();
+  const currentDay = today.getDate();
+  const cutoff = card.cutoffDay;
+  const payment = card.paymentDay;
+  let cutoffDate, paymentDate;
+
+  if (currentDay <= cutoff) {
+    cutoffDate = new Date(today.getFullYear(), today.getMonth(), cutoff);
+  } else {
+    cutoffDate = new Date(today.getFullYear(), today.getMonth() + 1, cutoff);
+  }
+
+  if (currentDay <= payment) {
+    paymentDate = new Date(today.getFullYear(), today.getMonth(), payment);
+  } else {
+    paymentDate = new Date(today.getFullYear(), today.getMonth() + 1, payment);
+  }
+
+  const daysToCutoff = Math.ceil((cutoffDate - today) / (1000 * 60 * 60 * 24));
+  const daysToPayment = Math.ceil((paymentDate - today) / (1000 * 60 * 60 * 24));
+
+  detailsContentEl.innerHTML = `
+    <div class="details-header">
+      <h2>${card.nickname} <small>${card.bank} - **** ${card.last4}</small></h2>
+      <div class="details-header-buttons">
+        <button class="btn" onclick="openEditCard('${card.id}')">Editar</button>
+        <button class="btn btn-danger" onclick="deleteCard('${card.id}')">Eliminar</button>
+        <button class="btn" onclick="openAddExpense('${card.id}')">Añadir Gasto</button>
+        <button class="btn btn-success" onclick="openAddPayment('${card.id}')">Pagar</button>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h4>Balance actual</h4>
+        <p>$${balance.toFixed(2)}</p>
+      </div>
+      <div class="stat-card">
+        <h4>Crédito disponible</h4>
+        <p>$${availableCredit.toFixed(2)}</p>
+      </div>
+      <div class="stat-card">
+        <h4>Próximo corte</h4>
+        <p>${cutoffDate.toLocaleDateString()}</p>
+        <small class="${daysToCutoff <= 3 ? 'alert-soon' : ''}">En ${daysToCutoff} días</small>
+      </div>
+      <div class="stat-card">
+        <h4>Fecha de pago</h4>
+        <p>${paymentDate.toLocaleDateString()}</p>
+        <small class="${daysToPayment <= 3 ? 'alert' : ''}">En ${daysToPayment} días</small>
+      </div>
+    </div>
+  `;
+}
 
   function render() {
     renderCardList();
