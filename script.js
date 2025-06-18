@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const welcomeMessageEl = document.getElementById('welcome-message');
   const detailsContentEl = document.getElementById('details-content');
   const summaryContainerEl = document.getElementById('summary-container');
+  const defaultCardFormSubmit = addCardForm.onsubmit;
 
   function saveData() {
     localStorage.setItem('creditCardData', JSON.stringify(cards));
@@ -193,4 +194,64 @@ function renderCardDetails() {
   loadData();
   if (cards.length > 0) selectedCardId = cards[0].id;
   render();
+
+  function openEditCard(cardId) {
+  const card = cards.find(c => c.id === cardId);
+  if (!card) return;
+
+  document.getElementById('modal-title').textContent = 'Editar Tarjeta';
+  document.getElementById('card-nickname').value = card.nickname;
+  document.getElementById('card-bank').value = card.bank;
+  document.getElementById('card-last4').value = card.last4;
+  document.getElementById('credit-limit').value = card.creditLimit;
+  document.getElementById('cutoff-day').value = card.cutoffDay || '';
+  document.getElementById('payment-day').value = card.paymentDay || '';
+
+  // Reemplazar el submit temporalmente para editar
+  addCardForm.onsubmit = function (e) {
+    e.preventDefault();
+    card.nickname = document.getElementById('card-nickname').value;
+    card.bank = document.getElementById('card-bank').value;
+    card.last4 = document.getElementById('card-last4').value;
+    card.creditLimit = parseFloat(document.getElementById('credit-limit').value);
+    card.cutoffDay = parseInt(document.getElementById('cutoff-day').value);
+    card.paymentDay = parseInt(document.getElementById('payment-day').value);
+    addCardModal.style.display = 'none';
+    addCardForm.reset();
+    addCardForm.onsubmit = defaultCardFormSubmit;
+    render();
+  };
+
+  addCardModal.style.display = 'block';
+}
+
+function deleteCard(cardId) {
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: 'Esta acción eliminará la tarjeta y todos sus movimientos.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  }).then(result => {
+    if (result.isConfirmed) {
+      cards = cards.filter(c => c.id !== cardId);
+      selectedCardId = cards.length > 0 ? cards[0].id : null;
+      render();
+    }
+  });
+}
+
+function openAddExpense(cardId) {
+  document.getElementById('expense-card-id').value = cardId;
+  document.getElementById('add-expense-form').reset();
+  document.getElementById('add-expense-modal').style.display = 'block';
+}
+
+function openAddPayment(cardId) {
+  document.getElementById('payment-card-id').value = cardId;
+  document.getElementById('add-payment-form').reset();
+  document.getElementById('add-payment-modal').style.display = 'block';
+}
+
 });
