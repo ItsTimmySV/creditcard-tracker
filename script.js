@@ -303,7 +303,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ${installmentInfo}
                                 <div class="date">${new Date(tx.date).toLocaleDateString('es-ES')}</div>
                             </div>
-                            <div class="amount">${isPayment ? '-$' + Math.abs(tx.amount).toFixed(2) : '$' + tx.amount.toFixed(2)}</div>
+                            <div class="transaction-right-side">
+                                <div class="amount">${isPayment ? '-$' + Math.abs(tx.amount).toFixed(2) : '$' + tx.amount.toFixed(2)}</div>
+                                <button class="delete-transaction-btn" data-card-id="${card.id}" data-tx-id="${tx.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </li>`
                     }).join('')}
                 </ul>
@@ -314,6 +319,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('add-installment-detail-btn').addEventListener('click', handleOpenInstallmentModal);
         document.getElementById('add-payment-detail-btn').addEventListener('click', handleOpenPaymentModal);
         document.getElementById('delete-card-btn').addEventListener('click', handleDeleteCard);
+        
+        // Add event listeners for new delete transaction buttons
+        document.querySelectorAll('.delete-transaction-btn').forEach(button => {
+            button.addEventListener('click', handleDeleteTransaction);
+        });
     };
     
     const render = () => {
@@ -538,6 +548,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const handleDeleteTransaction = (e) => {
+        const cardId = e.currentTarget.dataset.cardId;
+        const txId = e.currentTarget.dataset.txId;
+
+        Swal.fire({
+            title: '¿Eliminar movimiento?',
+            text: "Esta acción no se puede deshacer.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Make confirm button red for delete
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, ¡eliminar!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const card = cards.find(c => c.id === cardId);
+                if (card) {
+                    // Filter out the transaction to be deleted
+                    card.transactions = card.transactions.filter(tx => tx.id !== txId);
+                    render();
+                    Swal.fire('¡Eliminado!', 'El movimiento ha sido eliminado.', 'success');
+                } else {
+                    Swal.fire('Error', 'No se encontró la tarjeta.', 'error');
+                }
+            }
+        });
+    };
+
     const handleExportData = () => {
         if (cards.length === 0) {
             Swal.fire('Nada que exportar', 'No tienes ninguna tarjeta para exportar.', 'info');
@@ -708,37 +746,72 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentMonth = today.getMonth(); // 0-indexed
         const currentDate = today.getDate();
 
-        // 1. Calculate the 'displayCutoffDate': This is the cutoff date for the current month.
-        // It represents the end of the billing cycle that either just passed or is upcoming in the current month.
-        const displayCutoffDate = new Date(currentYear, currentMonth, cutoffDay);
+        // Determine the relevant cutoff month based on today's date
+        // If today's date is on or before the cutoff day, the current cycle's cutoff is in the current month.
+        // If today's date is after the cutoff day, the current cycle's cutoff was in the current month, and the next cycle has started.
+        // We want to display the *upcoming* cutoff date and payment date if today is before cutoff,
+        // or the *current cycle's* payment date if today is after cutoff.
         
-        // 2. Calculate the 'displayPaymentDate' corresponding to the 'displayCutoffDate'.
-        // This date is typically in the same month or the next month, relative to the cutoff.
-        let displayPaymentDate;
-        if (paymentDay > displayCutoffDate.getDate() && displayCutoffDate.getMonth() === currentMonth) {
-            // If payment day is later than cutoff day in the same calendar month,
-            // the payment is due in the same calendar month as the cutoff.
-            displayPaymentDate = new Date(displayCutoffDate.getFullYear(), displayCutoffDate.getMonth(), paymentDay);
-        } else {
-            // If payment day is earlier than cutoff day in the same calendar month,
-            // or if it's the next month relative to the cutoff month,
-            // the payment is due in the NEXT calendar month after the cutoff.
-            displayPaymentDate = new Date(displayCutoffDate.getFullYear(), displayCutoffDate.getMonth() + 1, paymentDay);
+        let cutoffMonth = currentMonth;
+        if (currentDate > cutoffDay) {
+            // If today is past the cutoff day of the current month, the *next* cutoff is in the next month.
+            cutoffMonth = currentMonth + 1;
         }
 
-        // 3. Calculate 'cycleStartDate': The start of the current billing cycle.
-        // This is the day after the *previous* cutoff date.
-        // If today's date is after the cutoff day, it means the current statement's cutoff was in the current month.
-        // So the cycle started after the cutoff of the *previous* month.
+        const displayCutoffDate = new Date(currentYear, cutoffMonth, cutoffDay);
+        
+        // The payment date is in the same month as the cutoff, or the next month, depending on the paymentDay.
+        // If paymentDay is <= cutoffDay, it's typically for the *previous* cutoff.
+        // If paymentDay > cutoffDay, it's typically for the *current* cutoff.
+        // This logic is tricky because banks vary. Let's simplify: Payment is always after cutoff.
+        // So, if the payment day is *earlier* than the cutoff day, it must refer to the *next* month's payment for the *current* cutoff.
+        // If the payment day is *later* than the cutoff day, it refers to the *current* month's payment for the *previous* cutoff.
+
+        // Simpler approach for payment date: It's always in the month of the cutoff or the month after.
+        // If paymentDay is after cutoffDay, it likely relates to the statement that *just* ended (or will end this month).
+        // If paymentDay is before cutoffDay, it likely relates to the statement that *will end next month*.
+        // This is simplified to just check month of cutoff date:
+        let displayPaymentDate = new Date(displayCutoffDate.getFullYear(), displayCutoffDate.getMonth(), paymentDay);
+
+        // If payment day is before cutoff day, it implies the payment is for the *next* month's cycle.
+        // Example: Cutoff 15, Payment 5. If cutoff is Oct 15, payment is Nov 5.
+        // Example: Cutoff 5, Payment 15. If cutoff is Oct 5, payment is Oct 15.
+        // The displayPaymentDate is for the cycle ending on displayCutoffDate.
+
+        // Correctly determine displayPaymentDate based on displayCutoffDate:
+        if (paymentDay <= displayCutoffDate.getDate() && paymentDay <= cutoffDay) {
+            // If paymentDay is numerically less than or equal to cutoffDay, and also less than or equal to actual cutoff day,
+            // then payment is due in the *next* month relative to the displayCutoffDate.
+            displayPaymentDate.setMonth(displayPaymentDate.getMonth() + 1);
+        }
+        // else, payment is in the same month as displayCutoffDate (already set).
+
+        // Calculate 'cycleStartDate': This determines which transactions belong to the *current* statement.
+        // It's the day after the *previous* cutoff date relative to the *display* cutoff date.
         let cycleStartDate;
-        if (currentDate > cutoffDay) {
-            // Example: Today June 10, Cutoff Day 6. Current statement ended June 6.
-            // Cycle started (May 6 + 1) = May 7.
-            cycleStartDate = new Date(currentYear, currentMonth - 1, cutoffDay + 1);
-        } else {
-            // Example: Today June 10, Cutoff Day 15. Current statement will end June 15.
-            // Cycle started (May 15 + 1) = May 16.
-            cycleStartDate = new Date(currentYear, currentMonth - 1, cutoffDay + 1);
+        const prevCutoffMonth = displayCutoffDate.getMonth() - 1;
+        cycleStartDate = new Date(displayCutoffDate.getFullYear(), prevCutoffMonth, cutoffDay + 1);
+        
+        // Edge case: If previous month leads to year change (Jan -> Dec)
+        if (prevCutoffMonth < 0) {
+            cycleStartDate = new Date(displayCutoffDate.getFullYear() - 1, 11, cutoffDay + 1);
+        }
+
+        // Adjust cycleStartDate if it's somehow in the future compared to displayCutoffDate
+        if (cycleStartDate >= displayCutoffDate) {
+             // This happens if cutoffDay is 31 and next month has fewer days,
+             // or if payment day logic pushed cutoff date forward.
+             // Re-evaluate cycle start for current active statement.
+             // The start of the current cycle is always the day after the last month's cutoff.
+             const actualCurrentMonthCutoff = new Date(currentYear, currentMonth, cutoffDay);
+             if (currentDate <= cutoffDay) {
+                 // Current cycle started last month
+                 cycleStartDate = new Date(currentYear, currentMonth - 1, cutoffDay + 1);
+                 if (currentMonth - 1 < 0) cycleStartDate = new Date(currentYear - 1, 11, cutoffDay + 1);
+             } else {
+                 // Current cycle started this month (after this month's cutoff)
+                 cycleStartDate = new Date(currentYear, currentMonth, cutoffDay + 1);
+             }
         }
 
         // Calculate days until payment
