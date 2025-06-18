@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const expenseCardIdInput = document.getElementById('expense-card-id');
     const installmentCardIdInput = document.getElementById('installment-card-id');
     const paymentCardIdInput = document.getElementById('payment-card-id');
+    const paymentTypeSelect = document.getElementById('payment-type');
+    const installmentSelectGroup = document.getElementById('installment-select-group');
+    const paymentTargetInstallmentSelect = document.getElementById('payment-target-installment');
     const summaryContainerEl = document.getElementById('summary-container');
     const exportDataBtn = document.getElementById('export-data-btn');
     const importDataBtn = document.getElementById('import-data-btn');
@@ -35,6 +38,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = localStorage.getItem('creditCardData');
         if (data) {
             cards = JSON.parse(data);
+            // Data migration: Ensure 'type' property is set for all transactions
+            cards.forEach(card => {
+                card.transactions.forEach(tx => {
+                    if (!tx.type) {
+                        if (tx.amount < 0) {
+                            tx.type = 'general_payment';
+                        } else if (tx.isInstallment) {
+                            tx.type = 'installment_purchase';
+                            // Optionally remove old 'isInstallment' property if no longer needed
+                            // delete tx.isInstallment;
+                        } else {
+                            tx.type = 'expense';
+                        }
+                    }
+                });
+            });
         }
     };
 
@@ -47,7 +66,16 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryContainerEl.classList.remove('hidden');
 
         const totalBalance = cards.reduce((total, card) => {
-            const cardBalance = card.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+            const cardBalance = card.transactions.reduce((sum, tx) => {
+                // For installment purchases, only the remaining amount contributes to current balance
+                if (tx.type === 'installment_purchase') {
+                    const totalPaidOnInstallment = card.transactions
+                        .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                        .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
+                    return sum + (tx.amount - totalPaidOnInstallment);
+                }
+                return sum + tx.amount;
+            }, 0);
             return total + cardBalance;
         }, 0);
 
@@ -122,7 +150,17 @@ document.addEventListener('DOMContentLoaded', () => {
         welcomeMessageEl.classList.add('hidden');
         detailsContentEl.classList.remove('hidden');
 
-        const balance = card.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+        // Calculate card balance considering installment payments
+        const balance = card.transactions.reduce((sum, tx) => {
+            if (tx.type === 'installment_purchase') {
+                const totalPaidOnInstallment = card.transactions
+                    .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                    .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
+                return sum + (tx.amount - totalPaidOnInstallment);
+            }
+            return sum + tx.amount;
+        }, 0);
+
         const availableCredit = card.creditLimit - balance;
         const usagePercentage = card.creditLimit > 0 ? (balance / card.creditLimit) * 100 : 0;
         
@@ -138,7 +176,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (usagePercentage > 90) usageBarClass = 'over-limit';
         else if (usagePercentage > 75) usageBarClass = 'high-usage';
         
-        const activeInstallments = card.transactions.filter(tx => tx.isInstallment && areInstallmentsActive(tx));
+        const allInstallmentPurchases = card.transactions.filter(tx => tx.type === 'installment_purchase');
+        const activeInstallments = allInstallmentPurchases.filter(tx => {
+             const totalPaidOnInstallment = card.transactions
+                .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
+            return totalPaidOnInstallment < tx.amount; // Still has remaining balance
+        });
 
         detailsContentEl.innerHTML = `
             <div class="details-header">
@@ -185,20 +229,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="installment-plan-list">
                     ${activeInstallments.map(tx => {
                         const monthlyPayment = tx.amount / tx.installments;
+                        const totalPaidOnInstallment = card.transactions
+                            .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                            .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
+                        const remainingAmount = tx.amount - totalPaidOnInstallment;
+
+                        // Calculate current installment based on elapsed months (for display purposes)
                         const { currentInstallment } = getInstallmentProgress(tx);
-                        const progress = (currentInstallment / tx.installments) * 100;
+                        const progress = ( (tx.amount - remainingAmount) / tx.amount) * 100; // Progress based on actual amount paid
+
                         return `
                         <div class="installment-plan-item">
                             <div class="installment-plan-item-header">
                                 <span class="description">${tx.description}</span>
-                                <span class="progress-text">${currentInstallment} / ${tx.installments} meses</span>
+                                <span class="progress-text">${(tx.amount - remainingAmount).toFixed(2)} / ${tx.amount.toFixed(2)} (${currentInstallment} de ${tx.installments} meses)</span>
                             </div>
                             <div class="progress-bar-container">
                                 <div class="progress-bar" style="width: ${progress}%"></div>
                             </div>
                             <div class="installment-plan-details">
-                                <span>Mensualidad: $${monthlyPayment.toFixed(2)}</span>
-                                <span>Restante: $${(tx.amount - (currentInstallment * monthlyPayment)).toFixed(2)}</span>
+                                <span>Mensualidad teórica: $${monthlyPayment.toFixed(2)}</span>
+                                <span>Restante: $${remainingAmount.toFixed(2)}</span>
                             </div>
                         </div>
                         `
@@ -220,16 +271,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${card.transactions.length === 0 ? '<li>No hay movimientos.</li>' : ''}
                     ${[...card.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).map(tx => {
                         const isPayment = tx.amount < 0;
-                        const isInstallment = tx.isInstallment;
+                        const isInstallmentPurchase = tx.type === 'installment_purchase';
+                        const isInstallmentPayment = tx.type === 'installment_payment';
                         let installmentInfo = '';
-                        if(isInstallment) {
+                        if(isInstallmentPurchase) {
                              const monthlyPayment = tx.amount / tx.installments;
-                             const { currentInstallment } = getInstallmentProgress(tx);
-                             installmentInfo = `<div class="installment-info">${currentInstallment} de ${tx.installments} meses - $${monthlyPayment.toFixed(2)}/mes</div>`;
+                             const totalPaidOnInstallment = card.transactions
+                                .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                                .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
+                             const remainingAmount = tx.amount - totalPaidOnInstallment;
+                             installmentInfo = `<div class="installment-info">Total: $${tx.amount.toFixed(2)} | Pagado: $${totalPaidOnInstallment.toFixed(2)} | Restante: $${remainingAmount.toFixed(2)}</div>`;
+                        } else if (isInstallmentPayment) {
+                            const targetInstallment = card.transactions.find(t => t.id === tx.targetInstallmentId);
+                            if (targetInstallment) {
+                                installmentInfo = `<div class="installment-info">Abono a: ${targetInstallment.description}</div>`;
+                            }
+                        }
+
+                        // Determine class for amount color
+                        let amountClass = '';
+                        if (tx.type === 'general_payment' || tx.type === 'installment_payment') {
+                            amountClass = 'payment';
+                        } else if (tx.type === 'expense' || tx.type === 'installment_purchase') {
+                            amountClass = 'expense';
                         }
 
                         return `
-                        <li class="transaction-item ${isPayment ? 'payment' : 'expense'}">
+                        <li class="transaction-item ${amountClass}">
                             <div>
                                 <div class="description">${tx.description}</div>
                                 ${installmentInfo}
@@ -297,6 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cardId = e.currentTarget.dataset.id;
         expenseCardIdInput.value = cardId;
         document.getElementById('expense-date').valueAsDate = new Date();
+        document.getElementById('expense-category').value = "";
         handleOpenModal(addExpenseModal);
     };
     
@@ -304,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cardId = e.currentTarget.dataset.id;
         installmentCardIdInput.value = cardId;
         document.getElementById('installment-date').valueAsDate = new Date();
+        document.getElementById('installment-category').value = "";
         handleOpenModal(addInstallmentModal);
     };
 
@@ -311,8 +381,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const cardId = e.currentTarget.dataset.id;
         paymentCardIdInput.value = cardId;
         document.getElementById('payment-date').valueAsDate = new Date();
+
+        // Populate installment options
+        const card = cards.find(c => c.id === cardId);
+        if (card) {
+            const activeInstallments = card.transactions.filter(tx => 
+                tx.type === 'installment_purchase' && (tx.amount - card.transactions
+                    .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                    .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0)) > 0
+            );
+            
+            paymentTargetInstallmentSelect.innerHTML = ''; // Clear previous options
+            if (activeInstallments.length > 0) {
+                activeInstallments.forEach(tx => {
+                    const option = document.createElement('option');
+                    option.value = tx.id;
+                    option.textContent = `${tx.description} ($${tx.amount.toFixed(2)})`;
+                    paymentTargetInstallmentSelect.appendChild(option);
+                });
+            } else {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No hay compras a meses activas';
+                option.disabled = true;
+                paymentTargetInstallmentSelect.appendChild(option);
+            }
+        }
+
+        // Reset payment type and toggle visibility
+        paymentTypeSelect.value = 'general';
+        installmentSelectGroup.classList.add('hidden');
+        paymentTargetInstallmentSelect.required = false;
+
         handleOpenModal(addPaymentModal);
     };
+
+    // Event listener for payment type change
+    paymentTypeSelect.addEventListener('change', () => {
+        if (paymentTypeSelect.value === 'installment') {
+            installmentSelectGroup.classList.remove('hidden');
+            paymentTargetInstallmentSelect.required = true;
+        } else {
+            installmentSelectGroup.classList.add('hidden');
+            paymentTargetInstallmentSelect.required = false;
+        }
+    });
+
 
     const handleAddExpense = (e) => {
         e.preventDefault();
@@ -324,12 +438,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 description: document.getElementById('expense-description').value,
                 amount: parseFloat(document.getElementById('expense-amount').value),
                 date: document.getElementById('expense-date').value,
-                category: document.getElementById('expense-category').value
+                category: document.getElementById('expense-category').value,
+                type: 'expense' // Set type
             };
             card.transactions.push(newExpense);
             addExpenseForm.reset();
             handleCloseModals();
             render();
+            Swal.fire('¡Éxito!', 'Gasto registrado.', 'success');
         }
     };
     
@@ -344,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 amount: parseFloat(document.getElementById('installment-total-amount').value),
                 date: document.getElementById('installment-date').value,
                 category: document.getElementById('installment-category').value,
-                isInstallment: true,
+                type: 'installment_purchase', // Set type
                 installments: parseInt(document.getElementById('installment-months').value)
             };
             card.transactions.push(newInstallmentPurchase);
@@ -361,12 +477,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = cards.find(c => c.id === cardId);
         if (card) {
             const paymentAmount = parseFloat(document.getElementById('payment-amount').value);
-            const newPayment = {
-                id: `tx_${Date.now()}`,
-                description: 'Pago a la tarjeta',
-                amount: -paymentAmount, // Store payments as negative values
-                date: document.getElementById('payment-date').value,
-            };
+            const paymentDate = document.getElementById('payment-date').value;
+            const paymentType = paymentTypeSelect.value;
+            let newPayment;
+
+            if (paymentType === 'general') {
+                newPayment = {
+                    id: `tx_${Date.now()}`,
+                    description: 'Pago a la tarjeta',
+                    amount: -paymentAmount, // Store payments as negative values
+                    date: paymentDate,
+                    type: 'general_payment'
+                };
+            } else if (paymentType === 'installment') {
+                const targetInstallmentId = paymentTargetInstallmentSelect.value;
+                const targetInstallment = card.transactions.find(tx => tx.id === targetInstallmentId);
+                if (!targetInstallment) {
+                    Swal.fire('Error', 'Compra a meses seleccionada no encontrada.', 'error');
+                    return;
+                }
+                newPayment = {
+                    id: `tx_${Date.now()}`,
+                    description: `Abono a "${targetInstallment.description}"`,
+                    amount: -paymentAmount,
+                    date: paymentDate,
+                    type: 'installment_payment',
+                    targetInstallmentId: targetInstallmentId
+                };
+            } else {
+                Swal.fire('Error', 'Tipo de pago no válido.', 'error');
+                return;
+            }
+            
             card.transactions.push(newPayment);
             addPaymentForm.reset();
             handleCloseModals();
@@ -432,8 +574,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('El archivo JSON no es un array válido.');
                 }
                 
-                // Simple validation
-                const isValid = importedData.every(item => item.id && item.nickname && item.creditLimit);
+                // Simple validation (can be more robust)
+                const isValid = importedData.every(item => item.id && item.nickname && item.creditLimit && Array.isArray(item.transactions));
                 if (!isValid) {
                      throw new Error('El formato de los datos en el JSON no es correcto.');
                 }
@@ -450,6 +592,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).then((result) => {
                     if (result.isConfirmed) {
                         cards = importedData;
+                        // Apply migration logic to imported data too
+                        cards.forEach(card => {
+                            card.transactions.forEach(tx => {
+                                if (!tx.type) {
+                                    if (tx.amount < 0) {
+                                        tx.type = 'general_payment';
+                                    } else if (tx.isInstallment) {
+                                        tx.type = 'installment_purchase';
+                                        // delete tx.isInstallment; // Clean up old property on import if desired
+                                    } else {
+                                        tx.type = 'expense';
+                                    }
+                                }
+                            });
+                        });
                         selectedCardId = cards.length > 0 ? cards[0].id : null;
                         render();
                         Swal.fire('¡Importado!', 'Tus datos han sido importados correctamente.', 'success');
@@ -473,28 +630,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Utility Functions ---
     const getInstallmentProgress = (transaction) => {
-        if (!transaction.isInstallment) return null;
+        // This function calculates progress based on elapsed time, not actual payments
+        // Used for the "X of Y months" display
+        if (transaction.type !== 'installment_purchase') return null;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const purchaseDate = new Date(transaction.date);
         purchaseDate.setHours(0, 0, 0, 0);
         
-        // Calculate the number of full months passed since the purchase.
         let monthsPassed = (today.getFullYear() - purchaseDate.getFullYear()) * 12;
         monthsPassed -= purchaseDate.getMonth();
         monthsPassed += today.getMonth();
 
-        // The first installment is due in the billing cycle following the purchase.
-        // A simple approximation is to count months passed.
-        // If purchase is made on June 15, first payment is in July.
-        // If today is July 10, monthsPassed is 1. We consider this the 1st installment.
-        // If today is August 10, monthsPassed is 2. 2nd installment.
-        // But what if it's june 28th, months passed is 0. 
-        // A better logic might be needed based on cutoff dates, but this is a good start.
-        
         let currentInstallment = monthsPassed + 1;
         
-        if (today.getDate() <= purchaseDate.getDate()) {
+        // Adjust if current day is before or on the purchase day of the month (for previous cycle payment)
+        if (today.getDate() <= purchaseDate.getDate() && monthsPassed > 0) {
              currentInstallment = monthsPassed;
         }
 
@@ -503,17 +654,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    const areInstallmentsActive = (transaction) => {
-        const { currentInstallment } = getInstallmentProgress(transaction);
-        return currentInstallment < transaction.installments;
-    };
+    // `areInstallmentsActive` is now determined by whether remaining amount > 0,
+    // not just based on time. This is handled within renderCardDetails filter.
     
     const calculatePeriodPayment = (card, cycleStartDate, cycleEndDate) => {
         let total = 0;
         
         // Add one-time purchases for the current cycle
         card.transactions.forEach(tx => {
-            if (!tx.isInstallment && tx.amount > 0) {
+            if (tx.type === 'expense' || tx.type === 'installment_purchase') { // Both add to the period's balance
                 const txDate = new Date(tx.date);
                 if (txDate >= cycleStartDate && txDate <= cycleEndDate) {
                     total += tx.amount;
@@ -521,20 +670,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Add monthly payments for active installment plans
+        // Add monthly portions for active installment plans regardless of their purchase date
         card.transactions.forEach(tx => {
-            if (tx.isInstallment) {
-                 const purchaseDate = new Date(tx.date);
-                 // Only consider installments for payment after the first cutoff has passed
-                 if(cycleEndDate > purchaseDate && areInstallmentsActive(tx)) {
-                    total += tx.amount / tx.installments;
-                 }
+            if (tx.type === 'installment_purchase') {
+                const totalPaidOnInstallment = card.transactions
+                    .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                    .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
+
+                if (totalPaidOnInstallment < tx.amount) { // Only if still active
+                    // This is a simplified approach. In reality, the monthly payment is part of the statement.
+                    // For now, let's assume monthly installment portion contributes to period payment if not fully paid off.
+                    // A more precise calculation would involve checking which monthly installments are due in the current cycle.
+                    total += (tx.amount / tx.installments);
+                }
             }
         });
 
-        // Subtract payments made in the current cycle
+        // Subtract general payments made in the current cycle.
+        // Specific installment payments (type: 'installment_payment') are considered extra principal payments
+        // and do not reduce the *minimum period payment* required to avoid interest.
          card.transactions.forEach(tx => {
-            if (tx.amount < 0) {
+            if (tx.type === 'general_payment') { // Only general payments reduce the period payment
                  const paymentDate = new Date(tx.date);
                  if (paymentDate >= cycleStartDate && paymentDate <= cycleEndDate) {
                     total += tx.amount; // amount is negative, so it subtracts
@@ -549,64 +705,47 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Normalize to start of day
         const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth();
+        const currentMonth = today.getMonth(); // 0-indexed
         const currentDate = today.getDate();
 
-        // Calculate cutoff date for the current period.
-        let cutoffDate;
+        // 1. Calculate the 'displayCutoffDate': This is the cutoff date for the current month.
+        // It represents the end of the billing cycle that either just passed or is upcoming in the current month.
+        const displayCutoffDate = new Date(currentYear, currentMonth, cutoffDay);
+        
+        // 2. Calculate the 'displayPaymentDate' corresponding to the 'displayCutoffDate'.
+        // This date is typically in the same month or the next month, relative to the cutoff.
+        let displayPaymentDate;
+        if (paymentDay > displayCutoffDate.getDate() && displayCutoffDate.getMonth() === currentMonth) {
+            // If payment day is later than cutoff day in the same calendar month,
+            // the payment is due in the same calendar month as the cutoff.
+            displayPaymentDate = new Date(displayCutoffDate.getFullYear(), displayCutoffDate.getMonth(), paymentDay);
+        } else {
+            // If payment day is earlier than cutoff day in the same calendar month,
+            // or if it's the next month relative to the cutoff month,
+            // the payment is due in the NEXT calendar month after the cutoff.
+            displayPaymentDate = new Date(displayCutoffDate.getFullYear(), displayCutoffDate.getMonth() + 1, paymentDay);
+        }
+
+        // 3. Calculate 'cycleStartDate': The start of the current billing cycle.
+        // This is the day after the *previous* cutoff date.
+        // If today's date is after the cutoff day, it means the current statement's cutoff was in the current month.
+        // So the cycle started after the cutoff of the *previous* month.
+        let cycleStartDate;
         if (currentDate > cutoffDay) {
-            // We are past this month's cutoff day, so the current period's cutoff is next month.
-            cutoffDate = new Date(currentYear, currentMonth + 1, cutoffDay);
+            // Example: Today June 10, Cutoff Day 6. Current statement ended June 6.
+            // Cycle started (May 6 + 1) = May 7.
+            cycleStartDate = new Date(currentYear, currentMonth - 1, cutoffDay + 1);
         } else {
-            // We are before this month's cutoff day, so the cutoff is this month.
-            cutoffDate = new Date(currentYear, currentMonth, cutoffDay);
-        }
-        
-        const cycleStartDate = new Date(cutoffDate.getFullYear(), cutoffDate.getMonth() - 1, cutoffDate.getDate() + 1);
-
-        // Calculate the corresponding payment date for that cutoff.
-        let paymentMonth;
-        
-        if (paymentDay > cutoffDay) {
-            // Payment is in the same month as cutoff.
-            // e.g., Cutoff: 15th, Payment: 30th.
-            // cutoffDate is June 15th, paymentDate is June 30th.
-            paymentMonth = cutoffDate.getMonth();
-        } else {
-            // Payment is in the month AFTER cutoff.
-            // e.g., Cutoff: 25th, Payment: 10th.
-            // cutoffDate is June 25th, paymentDate is July 10th.
-            paymentMonth = cutoffDate.getMonth() + 1;
+            // Example: Today June 10, Cutoff Day 15. Current statement will end June 15.
+            // Cycle started (May 15 + 1) = May 16.
+            cycleStartDate = new Date(currentYear, currentMonth - 1, cutoffDay + 1);
         }
 
-        const paymentDate = new Date(cutoffDate.getFullYear(), paymentMonth, paymentDay);
-        
-        // Now, we need to find the NEXT upcoming payment date to calculate days remaining.
-        let nextPaymentDate;
-        
-        const thisPeriodPayment = new Date(today.getFullYear(), today.getMonth(), paymentDay);
-
-        if (paymentDay > cutoffDay) {
-            // Payment is same month as cutoff (e.g., cut 15, pay 30)
-            if (today > thisPeriodPayment) { // We passed this month's payment date
-                 nextPaymentDate = new Date(today.getFullYear(), today.getMonth() + 1, paymentDay);
-            } else {
-                 nextPaymentDate = thisPeriodPayment;
-            }
-        } else {
-            // Payment is month after cutoff (e.g., cut 25, pay 10)
-            const lastMonthCutoffPayment = new Date(today.getFullYear(), today.getMonth(), paymentDay);
-            if(today > lastMonthCutoffPayment) { // We passed this month's payment date (for last month's cutoff)
-                nextPaymentDate = new Date(today.getFullYear(), today.getMonth() + 1, paymentDay);
-            } else {
-                nextPaymentDate = lastMonthCutoffPayment;
-            }
-        }
-        
-        const diffTime = nextPaymentDate - today;
+        // Calculate days until payment
+        const diffTime = displayPaymentDate.getTime() - today.getTime();
         const daysUntilPayment = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        return { cutoffDate, paymentDate, daysUntilPayment, cycleStartDate };
+        return { cutoffDate: displayCutoffDate, paymentDate: displayPaymentDate, daysUntilPayment, cycleStartDate };
     }
 
 
