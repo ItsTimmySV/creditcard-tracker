@@ -10,11 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const addCardBtn = document.getElementById('add-card-btn');
   const addCardModal = document.getElementById('add-card-modal');
   const addCardForm = document.getElementById('add-card-form');
+  const defaultCardFormSubmit = addCardForm.onsubmit;
   const closeBtns = document.querySelectorAll('.close-btn');
   const welcomeMessageEl = document.getElementById('welcome-message');
   const detailsContentEl = document.getElementById('details-content');
   const summaryContainerEl = document.getElementById('summary-container');
-  const defaultCardFormSubmit = addCardForm.onsubmit;
 
   function saveData() {
     localStorage.setItem('creditCardData', JSON.stringify(cards));
@@ -195,7 +195,10 @@ function renderCardDetails() {
   if (cards.length > 0) selectedCardId = cards[0].id;
   render();
 
-  function openEditCard(cardId) {
+  
+});
+
+function openEditCard(cardId) {
   const card = cards.find(c => c.id === cardId);
   if (!card) return;
 
@@ -253,5 +256,3 @@ function openAddPayment(cardId) {
   document.getElementById('add-payment-form').reset();
   document.getElementById('add-payment-modal').style.display = 'block';
 }
-
-});
