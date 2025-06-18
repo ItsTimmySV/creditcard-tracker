@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <small>Sugerido para no generar intereses</small>
                 </div>
                 <div class="stat-card">
-                    <h4>Próximo Corte</h4>
+                    <h4>Fecha de Corte</h4>
                     <p>${cutoffDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</p>
                 </div>
                 <div class="stat-card">
