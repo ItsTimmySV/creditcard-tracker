@@ -1,5 +1,5 @@
 import { cards, selectedCardId, cardFilters } from '../data.js';
-import { getCardDates, calculatePeriodPayment } from '../utils.js';
+import { getCardDates, calculatePeriodPayment, calculateNextPeriodPayment } from '../utils.js';
 import { 
     handleOpenExpenseModal, 
     handleOpenInstallmentModal, 
@@ -124,9 +124,10 @@ export const renderCardDetails = () => {
     const availableCredit = card.creditLimit - balance;
     const usagePercentage = card.creditLimit > 0 ? (balance / card.creditLimit) * 100 : 0;
     
-    const { cutoffDate, paymentDate, daysUntilPayment, cycleStartDate, cutoffLabel } = getCardDates(card.cutoffDay, card.paymentDay);
+    const { cutoffDate, paymentDate, daysUntilPayment, cycleStartDate, cycleEndDate, cutoffLabel, nextCycleStartDate, nextCycleEndDate } = getCardDates(card.cutoffDay, card.paymentDay);
     
-    const periodPayment = calculatePeriodPayment(card, cycleStartDate, cutoffDate);
+    const periodPayment = calculatePeriodPayment(card, cycleStartDate, cycleEndDate);
+    const nextPeriodPaymentProjected = calculateNextPeriodPayment(card, nextCycleStartDate, nextCycleEndDate);
 
     let paymentAlertClass = '';
     if (daysUntilPayment <= 3 && daysUntilPayment >= 0) paymentAlertClass = 'alert';
@@ -174,6 +175,11 @@ export const renderCardDetails = () => {
                 <h4>Pago del Periodo</h4>
                 <p>$${periodPayment.toFixed(2)}</p>
                 <small>Sugerido para no generar intereses</small>
+            </div>
+            <div class="stat-card">
+                <h4>Próximo Pago del Periodo (Estimado)</h4>
+                <p>$${nextPeriodPaymentProjected.toFixed(2)}</p>
+                <small>Proyección para el siguiente estado de cuenta</small>
             </div>
             <div class="stat-card">
                 <h4>${cutoffLabel}</h4>
@@ -250,17 +256,17 @@ export const renderCardDetails = () => {
                     
                     // Apply date filters
                     if (currentFilters.startDate) {
-                        const start = new Date(currentFilters.startDate);
-                        displayedTransactions = displayedTransactions.filter(tx => new Date(tx.date) >= start);
+                        const start = new Date(`${currentFilters.startDate}T00:00:00`);
+                        displayedTransactions = displayedTransactions.filter(tx => new Date(`${tx.date}T00:00:00`) >= start);
                     }
                     if (currentFilters.endDate) {
-                        const end = new Date(currentFilters.endDate);
+                        const end = new Date(`${currentFilters.endDate}T00:00:00`);
                         end.setHours(23, 59, 59, 999); // Set to end of the day
-                        displayedTransactions = displayedTransactions.filter(tx => new Date(tx.date) <= end);
+                        displayedTransactions = displayedTransactions.filter(tx => new Date(`${tx.date}T00:00:00`) <= end);
                     }
 
                     // Sort filtered transactions
-                    displayedTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    displayedTransactions.sort((a, b) => new Date(`${b.date}T00:00:00`) - new Date(`${a.date}T00:00:00`));
 
                     if (displayedTransactions.length === 0) {
                         return '<li>No hay movimientos para el rango de fechas seleccionado.</li>';
@@ -298,7 +304,7 @@ export const renderCardDetails = () => {
                             <div>
                                 <div class="description">${tx.description}</div>
                                 ${installmentInfo}
-                                <div class="date">${new Date(tx.date).toLocaleDateString('es-ES')}</div>
+                                <div class="date">${new Date(`${tx.date}T00:00:00`).toLocaleDateString('es-ES')}</div>
                             </div>
                             <div class="transaction-right-side">
                                 <div class="amount">${isPayment ? '-$' + Math.abs(tx.amount).toFixed(2) : '$' + tx.amount.toFixed(2)}</div>

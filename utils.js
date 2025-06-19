@@ -1,19 +1,19 @@
 export const calculatePeriodPayment = (card, cycleStartDate, cycleEndDate) => {
     let total = 0;
     
-    // Add one-time purchases for the current cycle
+    // 1. Add one-time purchases (expenses) for the current cycle
     card.transactions.forEach(tx => {
-        if (tx.type === 'expense' || tx.type === 'installment_purchase') { // Both add to the period's balance
-            const txDate = new Date(tx.date);
-            if (txDate >= cycleStartDate && txDate <= cycleEndDate) {
+        if (tx.type === 'expense') { 
+            const txDate = new Date(`${tx.date}T00:00:00`); // Use local timezone
+            // Ensure txDate comparison includes cycleStartDate and cycleEndDate
+            const normalizedTxDate = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
+            if (normalizedTxDate >= cycleStartDate && normalizedTxDate <= cycleEndDate) {
                 total += tx.amount;
             }
         }
     });
 
-    // Add monthly portions for active installment plans regardless of their purchase date
-    // This is a simplified approach. In reality, the monthly payment is part of the statement.
-    // For now, let's assume a portion of monthly installment contributes to period payment if not fully paid off.
+    // 2. Add monthly portions for ALL active installment plans whose first payment is due by this cycle's end
     card.transactions.forEach(tx => {
         if (tx.type === 'installment_purchase') {
             const totalPaidOnInstallment = card.transactions
@@ -21,134 +21,146 @@ export const calculatePeriodPayment = (card, cycleStartDate, cycleEndDate) => {
                 .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
 
             if (totalPaidOnInstallment < tx.amount) { // Only if still active
-                total += (tx.amount / tx.installments);
+                const purchaseDate = new Date(`${tx.date}T00:00:00`); // Use local timezone
+                // Normalized purchase date for comparison
+                const normalizedPurchaseDate = new Date(purchaseDate.getFullYear(), purchaseDate.getMonth(), purchaseDate.getDate());
+                // Installment contributes if the purchase was made on or before the current cycle ends
+                if (normalizedPurchaseDate <= cycleEndDate) {
+                     total += (tx.amount / tx.installments);
+                }
             }
         }
     });
 
-    // Subtract general payments made in the current cycle.
-    // Specific installment payments (type: 'installment_payment') are considered extra principal payments
-    // and do not reduce the *minimum period payment* required to avoid interest.
+    // 3. Subtract general payments made in the current cycle.
      card.transactions.forEach(tx => {
-        if (tx.type === 'general_payment') { // Only general payments reduce the period payment
-             const paymentDate = new Date(tx.date);
-             if (paymentDate >= cycleStartDate && paymentDate <= cycleEndDate) {
+        if (tx.type === 'general_payment') { 
+             const paymentDate = new Date(`${tx.date}T00:00:00`); // Use local timezone
+             const normalizedPaymentDate = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate());
+             if (normalizedPaymentDate >= cycleStartDate && normalizedPaymentDate <= cycleEndDate) {
                 total += tx.amount; // amount is negative, so it subtracts
             }
         }
     });
 
-    return Math.max(0, total);
+    return Math.max(0, total); // Ensure it's not negative
+};
+
+export const calculateNextPeriodPayment = (card, nextCycleStartDate, nextCycleEndDate) => {
+    let totalNextPeriod = 0;
+
+    // 1. One-time expenses (type 'expense') that will fall into the next cycle
+    card.transactions.forEach(tx => {
+        if (tx.type === 'expense') {
+            const txDate = new Date(`${tx.date}T00:00:00`); // Use local timezone
+            const normalizedTxDate = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
+            if (normalizedTxDate >= nextCycleStartDate && normalizedTxDate <= nextCycleEndDate) {
+                totalNextPeriod += tx.amount;
+            }
+        }
+    });
+
+    // 2. Monthly portions for ALL active installment plans that will be due in the next statement
+    card.transactions.forEach(tx => {
+        if (tx.type === 'installment_purchase') {
+            const totalPaidOnInstallment = card.transactions
+                .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
+                .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0);
+
+            if (totalPaidOnInstallment < tx.amount) { // Only if still active
+                const purchaseDate = new Date(`${tx.date}T00:00:00`); // Use local timezone
+                const normalizedPurchaseDate = new Date(purchaseDate.getFullYear(), purchaseDate.getMonth(), purchaseDate.getDate());
+                // Installment contributes if the purchase was made on or before the next cycle ends
+                if (normalizedPurchaseDate <= nextCycleEndDate) {
+                     totalNextPeriod += (tx.amount / tx.installments);
+                }
+            }
+        }
+    });
+    
+    return Math.max(0, totalNextPeriod);
 };
 
 export function getCardDates(cutoffDay, paymentDay) {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to start of day
+    today.setHours(0, 0, 0, 0); // Normalize to start of day for comparisons
 
-    // Calculate current calendar month's cutoff date
-    let currentMonthCutoff = new Date(today.getFullYear(), today.getMonth(), cutoffDay);
-    const lastDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    if (cutoffDay > lastDayOfCurrentMonth) {
-        currentMonthCutoff.setDate(lastDayOfCurrentMonth);
-    }
+    // --- Determine the statement period that is currently pending payment ---
+    
+    // Find the most recent cutoff date that has already passed.
+    // This defines the end of the statement period we need to calculate payment for.
+    let lastCutoffYear = today.getFullYear();
+    let lastCutoffMonth = today.getMonth();
 
-    let cutoffDateToDisplay; // The actual Date object for the cutoff being displayed
-    let cycleStartDateForCalculations; // The start of the cycle for balance calculation
-    let cutoffLabel;
-
-    // Determine which cutoff date to display based on whether current month's cutoff has passed
-    if (today <= currentMonthCutoff) {
-        // The current month's cutoff has not yet passed (or it's today)
-        cutoffLabel = "Fecha de corte";
-        cutoffDateToDisplay = currentMonthCutoff;
-
-        // Cycle start date: Day after previous month's cutoff
-        let prevMonth = today.getMonth() - 1;
-        let prevYear = today.getFullYear();
-        if (prevMonth < 0) { // If current month is Jan, previous is Dec of previous year
-            prevMonth = 11;
-            prevYear--;
-        }
-        let prevCutoffDate = new Date(prevYear, prevMonth, cutoffDay);
-        // Adjust prevCutoffDate for end of month in previous month
-        const lastDayOfPrevCutoffMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
-        if (cutoffDay > lastDayOfPrevCutoffMonth) {
-            prevCutoffDate.setDate(lastDayOfPrevCutoffMonth);
-        }
-        cycleStartDateForCalculations = new Date(prevCutoffDate.getFullYear(), prevCutoffDate.getMonth(), prevCutoffDate.getDate() + 1);
-
-    } else {
-        // The current month's cutoff has already passed. Show next month's cutoff.
-        cutoffLabel = "Próximo Corte";
-        let nextMonth = today.getMonth() + 1;
-        let nextYear = today.getFullYear();
-        if (nextMonth > 11) { // If current month is Dec, next is Jan of next year
-            nextMonth = 0;
-            nextYear++;
-        }
-        cutoffDateToDisplay = new Date(nextYear, nextMonth, cutoffDay);
-        // Adjust nextMonthCutoff for end of month
-        const lastDayOfNextCutoffMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
-        if (cutoffDay > lastDayOfNextCutoffMonth) {
-            cutoffDateToDisplay.setDate(lastDayOfNextCutoffMonth);
-        }
-
-        // Cycle start date: Day after current month's cutoff (which just passed)
-        cycleStartDateForCalculations = new Date(currentMonthCutoff.getFullYear(), currentMonthCutoff.getMonth(), currentMonthCutoff.getDate() + 1);
-    }
-
-    // --- Logic for paymentDateToDisplay ---
-    // Determine the cutoff date that corresponds to the payment currently due or next due.
-    let cutoffForCurrentPaymentCycle;
     if (today.getDate() <= cutoffDay) {
-        // If today is on or before the cutoff day of the current month,
-        // the payment due would be for the cycle that ended last month.
-        let prevMonth = today.getMonth() - 1;
-        let prevYear = today.getFullYear();
-        if (prevMonth < 0) {
-            prevMonth = 11;
-            prevYear--;
-        }
-        cutoffForCurrentPaymentCycle = new Date(prevYear, prevMonth, cutoffDay);
-        const lastDayOfPrevCutoffMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
-        if (cutoffDay > lastDayOfPrevCutoffMonth) {
-            cutoffForCurrentPaymentCycle.setDate(lastDayOfPrevCutoffMonth);
-        }
-    } else {
-        // If today is after the cutoff day of the current month,
-        // the payment due would be for the cycle that ended this month.
-        cutoffForCurrentPaymentCycle = currentMonthCutoff;
-    }
-
-    // Calculate the initial payment date based on `cutoffForCurrentPaymentCycle`
-    let paymentDateToDisplay = new Date(cutoffForCurrentPaymentCycle.getFullYear(), cutoffForCurrentPaymentCycle.getMonth() + 1, paymentDay);
-    
-    // Adjust if paymentDay exceeds month's max days
-    const lastDayOfPaymentTargetMonth = new Date(paymentDateToDisplay.getFullYear(), paymentDateToDisplay.getMonth() + 1, 0).getDate();
-    if (paymentDay > lastDayOfPaymentTargetMonth) {
-        paymentDateToDisplay.setDate(lastDayOfPaymentTargetMonth);
-    }
-
-    // If this calculated paymentDateToDisplay has already passed 'today',
-    // then the next payment date should be shown.
-    // This ensures the displayed payment date is always in the future (or today) relative to 'today'.
-    if (paymentDateToDisplay < today) {
-        paymentDateToDisplay = new Date(paymentDateToDisplay.getFullYear(), paymentDateToDisplay.getMonth() + 1, paymentDay);
-        const lastDayOfNextPaymentTargetMonth = new Date(paymentDateToDisplay.getFullYear(), paymentDateToDisplay.getMonth() + 1, 0).getDate();
-        if (paymentDay > lastDayOfNextPaymentTargetMonth) {
-            paymentDateToDisplay.setDate(lastDayOfNextPaymentTargetMonth);
+        // If today is on or before the cutoff day of this month, the last cutoff was last month.
+        lastCutoffMonth--;
+        if (lastCutoffMonth < 0) {
+            lastCutoffMonth = 11;
+            lastCutoffYear--;
         }
     }
     
-    // Calculate days until payment for the final paymentDateToDisplay
-    const diffTime = paymentDateToDisplay.getTime() - today.getTime();
+    // This is the end date of the statement that is pending payment.
+    const lastCutoffDate = new Date(lastCutoffYear, lastCutoffMonth, cutoffDay);
+    // Adjust for months with fewer days than the cutoffDay
+    const lastDayOfCutoffMonth = new Date(lastCutoffYear, lastCutoffMonth + 1, 0).getDate();
+    if (cutoffDay > lastDayOfCutoffMonth) {
+        lastCutoffDate.setDate(lastDayOfCutoffMonth);
+    }
+    lastCutoffDate.setHours(0,0,0,0);
+
+    // The start date for this statement period is the day after the previous month's cutoff.
+    let cycleStartYear = lastCutoffYear;
+    let cycleStartMonth = lastCutoffMonth - 1;
+    if (cycleStartMonth < 0) {
+        cycleStartMonth = 11;
+        cycleStartYear--;
+    }
+    const cycleStartDate = new Date(cycleStartYear, cycleStartMonth, cutoffDay + 1);
+    cycleStartDate.setHours(0,0,0,0);
+
+    // --- Determine Payment Due Date for the `lastCutoffDate` statement ---
+    
+    // The payment is due on `paymentDay` of the month *following* the cutoff.
+    let paymentDueYear = lastCutoffDate.getFullYear();
+    let paymentDueMonth = lastCutoffDate.getMonth() + 1;
+    if(paymentDueMonth > 11){
+        paymentDueMonth = 0;
+        paymentDueYear++;
+    }
+    const paymentDate = new Date(paymentDueYear, paymentDueMonth, paymentDay);
+    paymentDate.setHours(0,0,0,0);
+
+
+    // --- Determine the NEXT statement period (the one currently active) ---
+    
+    // The next cutoff is the end of the current, active cycle.
+    const nextCutoffDate = new Date(lastCutoffDate.getFullYear(), lastCutoffDate.getMonth() + 1, cutoffDay);
+    // Adjust for months with fewer days
+    const lastDayOfNextCutoffMonth = new Date(nextCutoffDate.getFullYear(), nextCutoffDate.getMonth() + 1, 0).getDate();
+    if(cutoffDay > lastDayOfNextCutoffMonth){
+        nextCutoffDate.setDate(lastDayOfNextCutoffMonth);
+    }
+    nextCutoffDate.setHours(0,0,0,0);
+
+    // The start of the next cycle is the day after the last cutoff.
+    const nextCycleStartDate = new Date(lastCutoffDate.getFullYear(), lastCutoffDate.getMonth(), lastCutoffDate.getDate() + 1);
+    nextCycleStartDate.setHours(0,0,0,0);
+
+
+    // --- Final Values for Rendering ---
+    const diffTime = paymentDate.getTime() - today.getTime();
     const daysUntilPayment = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     return { 
-        cutoffDate: cutoffDateToDisplay, 
-        paymentDate: paymentDateToDisplay, 
+        cutoffDate: nextCutoffDate, // Display the upcoming cutoff date
+        paymentDate: paymentDate, // Display the upcoming payment due date
         daysUntilPayment, 
-        cycleStartDate: cycleStartDateForCalculations,
-        cutoffLabel: cutoffLabel
+        cycleStartDate: cycleStartDate, // The start date for the "Payment for Period" calculation
+        cycleEndDate: lastCutoffDate, // The end date for the "Payment for Period" calculation
+        cutoffLabel: "Próximo Corte", // Label for the upcoming cutoff date
+        nextCycleStartDate: nextCycleStartDate, // The start date for the "Next Period Payment" calculation
+        nextCycleEndDate: nextCutoffDate // The end date for the "Next Period Payment" calculation
     };
 }
