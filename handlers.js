@@ -1,6 +1,6 @@
 import { cards, selectedCardId, cardFilters, saveData, loadData } from '../data.js';
 import { render } from '../render.js';
-import { handleOpenModal, handleCloseModals } from '../modals.js';
+import { handleOpenModal, handleCloseModals, modals } from '../modals.js';
 
 // DOM Elements
 export const themeSwitcher = document.getElementById('theme-switcher');
@@ -25,55 +25,20 @@ export const exportDataBtn = document.getElementById('export-data-btn');
 export const importDataBtn = document.getElementById('import-data-btn');
 export const importFileInput = document.getElementById('import-file-input');
 
-// Define available themes and their display names/colors, ordered by user request
-const THEMES = [
-    { name: 'Oscuro', class: 'dark-theme', primaryColor: '#60a5fa', bgColor: '#121212' },
-    { name: 'Azul Oscuro', class: 'blue-dark-theme', primaryColor: '#0077b6', bgColor: '#121212' },
-    { name: 'Verde Oscuro', class: 'green-dark-theme', primaryColor: '#4caf50', bgColor: '#121212' },
-    { name: 'Morado Oscuro', class: 'purple-dark-theme', primaryColor: '#8e24aa', bgColor: '#121212' },
-    { name: 'Naranja Oscuro', class: 'orange-dark-theme', primaryColor: '#ff9800', bgColor: '#121212' },
-    { name: 'Rojo Oscuro', class: 'red-dark-theme', primaryColor: '#e53935', bgColor: '#121212' },
-    { name: 'Claro', class: 'light-theme', primaryColor: '#3b82f6', bgColor: '#f4f7fc' },
-    { name: 'Azul', class: 'blue-theme', primaryColor: '#0077b6', bgColor: '#e0f2f7' },
-    { name: 'Verde', class: 'green-theme', primaryColor: '#4caf50', bgColor: '#e6ffe6' },
-    { name: 'Morado', class: 'purple-theme', primaryColor: '#8e24aa', bgColor: '#f2e7f7' },
-    { name: 'Naranja', class: 'orange-theme', primaryColor: '#ff9800', bgColor: '#fff4e6' },
-    { name: 'Rojo', class: 'red-theme', primaryColor: '#e53935', bgColor: '#fbe9e7' }
-];
+// Define available themes
+const THEMES = ['dark-theme', 'light-theme', 'blue-theme', 'green-theme'];
 
 // --- Event Handlers ---
 export const handleThemeSwitch = () => {
-    // Get current active theme class
-    let currentThemeClass = localStorage.getItem('theme') || THEMES[0].class; // Default to the first theme class
+    let currentTheme = localStorage.getItem('theme') || THEMES[0]; // Get current theme or default to first
+    let currentIndex = THEMES.indexOf(currentTheme);
+    let nextIndex = (currentIndex + 1) % THEMES.length;
+    let nextTheme = THEMES[nextIndex];
 
-    // Generate HTML content for the themes list
-    const themesHtml = THEMES.map(theme => `
-        <button class="theme-option-btn ${theme.class === currentThemeClass ? 'selected' : ''}" data-theme-class="${theme.class}" style="background-color: ${theme.bgColor}; color: ${theme.primaryColor}; border: 1px solid ${theme.primaryColor};">
-            <span class="theme-name">${theme.name}</span>
-        </button>
-    `).join('');
-
-    Swal.fire({
-        title: 'Selecciona un Tema',
-        html: `<div class="theme-options-container">${themesHtml}</div>`,
-        showCancelButton: true,
-        cancelButtonText: 'Cancelar',
-        showConfirmButton: false, // No default confirm button
-        focusConfirm: false,
-        didOpen: () => {
-            // Add event listeners to the dynamically created buttons
-            document.querySelectorAll('.theme-option-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const selectedThemeClass = this.dataset.themeClass;
-                    // Apply the selected theme
-                    document.body.classList.remove(...THEMES.map(t => t.class));
-                    document.body.classList.add(selectedThemeClass);
-                    localStorage.setItem('theme', selectedThemeClass);
-                    Swal.close(); // Close the modal
-                });
-            });
-        }
-    });
+    // Remove all theme classes and add the new one
+    document.body.classList.remove(...THEMES);
+    document.body.classList.add(nextTheme);
+    localStorage.setItem('theme', nextTheme);
 };
 
 export const toggleMenu = () => {
@@ -106,7 +71,7 @@ export const handleOpenExpenseModal = (e) => {
     expenseCardIdInput.value = cardId;
     document.getElementById('expense-date').valueAsDate = new Date();
     document.getElementById('expense-category').value = "";
-    handleOpenModal(document.getElementById('add-expense_modal')); // Fix: Use correct modal ID
+    handleOpenModal(modals.addExpenseModal);
 };
 
 export const handleOpenInstallmentModal = (e) => {
@@ -114,7 +79,7 @@ export const handleOpenInstallmentModal = (e) => {
     installmentCardIdInput.value = cardId;
     document.getElementById('installment-date').valueAsDate = new Date();
     document.getElementById('installment-category').value = "";
-    handleOpenModal(document.getElementById('add-installment_modal')); // Fix: Use correct modal ID
+    handleOpenModal(modals.addInstallmentModal);
 };
 
 export const handleOpenPaymentModal = (e) => {
@@ -125,12 +90,12 @@ export const handleOpenPaymentModal = (e) => {
     // Populate installment options
     const card = cards.find(c => c.id === cardId);
     if (card) {
-        const activeInstallments = card.transactions.filter(tx =>
+        const activeInstallments = card.transactions.filter(tx => 
             tx.type === 'installment_purchase' && (tx.amount - card.transactions
                 .filter(t => t.type === 'installment_payment' && t.targetInstallmentId === tx.id)
                 .reduce((acc, payTx) => acc + Math.abs(payTx.amount), 0)) > 0
         );
-
+        
         paymentTargetInstallmentSelect.innerHTML = ''; // Clear previous options
         if (activeInstallments.length > 0) {
             activeInstallments.forEach(tx => {
@@ -139,40 +104,32 @@ export const handleOpenPaymentModal = (e) => {
                 option.textContent = `${tx.description} ($${tx.amount.toFixed(2)})`;
                 paymentTargetInstallmentSelect.appendChild(option);
             });
-            // Enable the installment option in the select if there are active installments
-            paymentTypeSelect.querySelector('option[value="installment"]').disabled = false;
         } else {
-             // Disable the installment option if no active installments
-            paymentTypeSelect.querySelector('option[value="installment"]').disabled = true;
-             // If installment was selected, reset to general
-             if(paymentTypeSelect.value === 'installment') {
-                 paymentTypeSelect.value = 'general';
-             }
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No hay compras a meses activas';
+            option.disabled = true;
+            paymentTargetInstallmentSelect.appendChild(option);
         }
     }
 
-    // Reset payment type and toggle visibility based on the default/initial value
-    paymentTypeSelect.value = 'general'; // Always start with general payment selected
+    // Reset payment type and toggle visibility
+    paymentTypeSelect.value = 'general';
     installmentSelectGroup.classList.add('hidden');
     paymentTargetInstallmentSelect.required = false;
 
     // Attach listener for payment type change, specific to this modal opening
-    // Use removeEventListener first to prevent adding multiple listeners if the modal is opened multiple times
-    paymentTypeSelect.removeEventListener('change', handlePaymentTypeChange); // Remove existing listener
-    paymentTypeSelect.addEventListener('change', handlePaymentTypeChange); // Add new listener
+    paymentTypeSelect.onchange = () => { // Use onchange property to avoid multiple listeners
+        if (paymentTypeSelect.value === 'installment') {
+            installmentSelectGroup.classList.remove('hidden');
+            paymentTargetInstallmentSelect.required = true;
+        } else {
+            installmentSelectGroup.classList.add('hidden');
+            paymentTargetInstallmentSelect.required = false;
+        }
+    };
 
-    handleOpenModal(document.getElementById('add-payment_modal')); // Fix: Use correct modal ID
-};
-
-// Helper function for payment type change
-const handlePaymentTypeChange = () => {
-    if (paymentTypeSelect.value === 'installment') {
-        installmentSelectGroup.classList.remove('hidden');
-        paymentTargetInstallmentSelect.required = true;
-    } else {
-        installmentSelectGroup.classList.add('hidden');
-        paymentTargetInstallmentSelect.required = false;
-    }
+    handleOpenModal(modals.addPaymentModal);
 };
 
 export const handleAddExpense = (e) => {
@@ -240,11 +197,6 @@ export const handleAddPayment = (e) => {
             };
         } else if (paymentType === 'installment') {
             const targetInstallmentId = paymentTargetInstallmentSelect.value;
-            // Ensure a target installment was actually selected
-             if (!targetInstallmentId) {
-                 Swal.fire('Error', 'Debes seleccionar una compra a meses.', 'error');
-                 return;
-             }
             const targetInstallment = card.transactions.find(tx => tx.id === targetInstallmentId);
             if (!targetInstallment) {
                 Swal.fire('Error', 'Compra a meses seleccionada no encontrada.', 'error');
@@ -262,7 +214,7 @@ export const handleAddPayment = (e) => {
             Swal.fire('Error', 'Tipo de pago no válido.', 'error');
             return;
         }
-
+        
         card.transactions.push(newPayment);
         saveData();
         addPaymentForm.reset();
@@ -286,13 +238,8 @@ export const handleDeleteCard = (e) => {
     }).then((result) => {
         if (result.isConfirmed) {
             cards = cards.filter(c => c.id !== cardId); // Reassigning cards array
-            // Remove card filter data if it exists
-            cardFilters.delete(cardId);
             saveData();
-            // If the deleted card was the selected one, clear selection
-            if (selectedCardId.value === cardId) {
-                selectedCardId.value = null; // Update the mutable object's value
-            }
+            selectedCardId.value = null; // Update the mutable object's value
             render();
             Swal.fire('¡Borrada!', 'Tu tarjeta ha sido eliminada.', 'success');
         }
@@ -318,12 +265,6 @@ export const handleDeleteTransaction = (e) => {
             if (card) {
                 // Filter out the transaction to be deleted
                 card.transactions = card.transactions.filter(tx => tx.id !== txId);
-
-                // If the deleted transaction was an installment purchase, also remove any payments linked to it
-                 card.transactions = card.transactions.filter(tx => 
-                    !(tx.type === 'installment_payment' && tx.targetInstallmentId === txId)
-                 );
-
                 saveData();
                 render();
                 Swal.fire('¡Eliminado!', 'El movimiento ha sido eliminado.', 'success');
@@ -339,14 +280,7 @@ export const handleExportData = () => {
         Swal.fire('Nada que exportar', 'No tienes ninguna tarjeta para exportar.', 'info');
         return;
     }
-
-    const currentTheme = localStorage.getItem('theme');
-    const exportDataObject = {
-        cards: cards,
-        theme: currentTheme // Include the current theme
-    };
-
-    const dataStr = JSON.stringify(exportDataObject, null, 2);
+    const dataStr = JSON.stringify(cards, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -372,32 +306,20 @@ export const handleImportFile = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
-            const importedContent = JSON.parse(event.target.result);
-            
-            // Determine if the imported data is the new structured format or old cards array
-            let importedCards = [];
-            let importedTheme = null;
-
-            if (Array.isArray(importedContent)) {
-                // Old format: direct array of cards
-                importedCards = importedContent;
-            } else if (typeof importedContent === 'object' && importedContent !== null && Array.isArray(importedContent.cards)) {
-                // New format: object with 'cards' and 'theme' properties
-                importedCards = importedContent.cards;
-                importedTheme = importedContent.theme;
-            } else {
-                throw new Error('El archivo JSON no tiene un formato válido.');
+            const importedData = JSON.parse(event.target.result);
+            if (!Array.isArray(importedData)) {
+                throw new Error('El archivo JSON no es un array válido.');
             }
-
+            
             // Simple validation (can be more robust)
-            const isValid = importedCards.every(item => item.id && item.nickname && item.creditLimit && Array.isArray(item.transactions));
+            const isValid = importedData.every(item => item.id && item.nickname && item.creditLimit && Array.isArray(item.transactions));
             if (!isValid) {
                  throw new Error('El formato de los datos en el JSON no es correcto.');
             }
-
+            
             Swal.fire({
                 title: 'Importar Datos',
-                text: `Encontradas ${importedCards.length} tarjetas. ¿Quieres reemplazar tus datos actuales? Esta acción no se puede deshacer.`,
+                text: `Encontradas ${importedData.length} tarjetas. ¿Quieres reemplazar tus datos actuales? Esta acción no se puede deshacer.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -408,9 +330,9 @@ export const handleImportFile = (e) => {
                 if (result.isConfirmed) {
                     // Directly reassign the imported cards data.
                     // This relies on `cards` being exported as `let` from `data.js`.
-                    cards.splice(0, cards.length, ...importedCards); // Clear and re-populate the existing array reference
-
-                    // Apply migration logic to imported data too (ensure 'type' exists)
+                    cards.splice(0, cards.length, ...importedData); // Clear and re-populate the existing array reference
+                    
+                    // Apply migration logic to imported data too
                     cards.forEach(card => {
                         card.transactions.forEach(tx => {
                             if (!tx.type) {
@@ -423,31 +345,12 @@ export const handleImportFile = (e) => {
                                     tx.type = 'expense';
                                 }
                             }
-                            // Ensure date is stored as string if not already
-                            if (tx.date instanceof Date) {
-                                tx.date = tx.date.toISOString().slice(0, 10);
-                            }
                         });
                     });
                     saveData();
-                    // Clear existing filters as they might reference old card IDs
-                    cardFilters.clear();
                     selectedCardId.value = cards.length > 0 ? cards[0].id : null; // Update the mutable object's value
-                    
-                    // Apply imported theme if available
-                    if (importedTheme) {
-                        document.body.classList.remove(...THEMES.map(t => t.class)); // Remove all existing theme classes
-                        document.body.classList.add(importedTheme);
-                        localStorage.setItem('theme', importedTheme);
-                    } else {
-                        // If no theme is found in the import, revert to default or current localStorage theme
-                        const savedTheme = localStorage.getItem('theme') || THEMES[0].class;
-                        document.body.classList.remove(...THEMES.map(t => t.class));
-                        document.body.classList.add(savedTheme);
-                    }
-
                     render();
-                    Swal.fire('¡Importado!', 'Tus datos y tema han sido importados correctamente.', 'success');
+                    Swal.fire('¡Importado!', 'Tus datos han sido importados correctamente.', 'success');
                 }
             });
 
