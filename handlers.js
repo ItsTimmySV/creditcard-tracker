@@ -106,7 +106,7 @@ export const handleOpenExpenseModal = (e) => {
     expenseCardIdInput.value = cardId;
     document.getElementById('expense-date').valueAsDate = new Date();
     document.getElementById('expense-category').value = "";
-    handleOpenModal(document.getElementById('add-expense-modal')); // Fix: Use correct modal ID
+    handleOpenModal(document.getElementById('add-expense_modal')); // Fix: Use correct modal ID
 };
 
 export const handleOpenInstallmentModal = (e) => {
@@ -114,7 +114,7 @@ export const handleOpenInstallmentModal = (e) => {
     installmentCardIdInput.value = cardId;
     document.getElementById('installment-date').valueAsDate = new Date();
     document.getElementById('installment-category').value = "";
-    handleOpenModal(document.getElementById('add-installment-modal')); // Fix: Use correct modal ID
+    handleOpenModal(document.getElementById('add-installment_modal')); // Fix: Use correct modal ID
 };
 
 export const handleOpenPaymentModal = (e) => {
@@ -161,7 +161,7 @@ export const handleOpenPaymentModal = (e) => {
     paymentTypeSelect.removeEventListener('change', handlePaymentTypeChange); // Remove existing listener
     paymentTypeSelect.addEventListener('change', handlePaymentTypeChange); // Add new listener
 
-    handleOpenModal(document.getElementById('add-payment-modal')); // Fix: Use correct modal ID
+    handleOpenModal(document.getElementById('add-payment_modal')); // Fix: Use correct modal ID
 };
 
 // Helper function for payment type change
@@ -339,7 +339,14 @@ export const handleExportData = () => {
         Swal.fire('Nada que exportar', 'No tienes ninguna tarjeta para exportar.', 'info');
         return;
     }
-    const dataStr = JSON.stringify(cards, null, 2);
+
+    const currentTheme = localStorage.getItem('theme');
+    const exportDataObject = {
+        cards: cards,
+        theme: currentTheme // Include the current theme
+    };
+
+    const dataStr = JSON.stringify(exportDataObject, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -365,20 +372,32 @@ export const handleImportFile = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
-            const importedData = JSON.parse(event.target.result);
-            if (!Array.isArray(importedData)) {
-                throw new Error('El archivo JSON no es un array válido.');
+            const importedContent = JSON.parse(event.target.result);
+            
+            // Determine if the imported data is the new structured format or old cards array
+            let importedCards = [];
+            let importedTheme = null;
+
+            if (Array.isArray(importedContent)) {
+                // Old format: direct array of cards
+                importedCards = importedContent;
+            } else if (typeof importedContent === 'object' && importedContent !== null && Array.isArray(importedContent.cards)) {
+                // New format: object with 'cards' and 'theme' properties
+                importedCards = importedContent.cards;
+                importedTheme = importedContent.theme;
+            } else {
+                throw new Error('El archivo JSON no tiene un formato válido.');
             }
 
             // Simple validation (can be more robust)
-            const isValid = importedData.every(item => item.id && item.nickname && item.creditLimit && Array.isArray(item.transactions));
+            const isValid = importedCards.every(item => item.id && item.nickname && item.creditLimit && Array.isArray(item.transactions));
             if (!isValid) {
                  throw new Error('El formato de los datos en el JSON no es correcto.');
             }
 
             Swal.fire({
                 title: 'Importar Datos',
-                text: `Encontradas ${importedData.length} tarjetas. ¿Quieres reemplazar tus datos actuales? Esta acción no se puede deshacer.`,
+                text: `Encontradas ${importedCards.length} tarjetas. ¿Quieres reemplazar tus datos actuales? Esta acción no se puede deshacer.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -389,7 +408,7 @@ export const handleImportFile = (e) => {
                 if (result.isConfirmed) {
                     // Directly reassign the imported cards data.
                     // This relies on `cards` being exported as `let` from `data.js`.
-                    cards.splice(0, cards.length, ...importedData); // Clear and re-populate the existing array reference
+                    cards.splice(0, cards.length, ...importedCards); // Clear and re-populate the existing array reference
 
                     // Apply migration logic to imported data too (ensure 'type' exists)
                     cards.forEach(card => {
@@ -414,8 +433,21 @@ export const handleImportFile = (e) => {
                     // Clear existing filters as they might reference old card IDs
                     cardFilters.clear();
                     selectedCardId.value = cards.length > 0 ? cards[0].id : null; // Update the mutable object's value
+                    
+                    // Apply imported theme if available
+                    if (importedTheme) {
+                        document.body.classList.remove(...THEMES.map(t => t.class)); // Remove all existing theme classes
+                        document.body.classList.add(importedTheme);
+                        localStorage.setItem('theme', importedTheme);
+                    } else {
+                        // If no theme is found in the import, revert to default or current localStorage theme
+                        const savedTheme = localStorage.getItem('theme') || THEMES[0].class;
+                        document.body.classList.remove(...THEMES.map(t => t.class));
+                        document.body.classList.add(savedTheme);
+                    }
+
                     render();
-                    Swal.fire('¡Importado!', 'Tus datos han sido importados correctamente.', 'success');
+                    Swal.fire('¡Importado!', 'Tus datos y tema han sido importados correctamente.', 'success');
                 }
             });
 
