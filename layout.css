@@ -1,0 +1,207 @@
+.container {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 2rem;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    align-items: flex-start;
+}
+
+/* Summary container is now a top-level grid item */
+.summary-container {
+    grid-column: 1 / -1; /* Span all columns on large screens */
+    margin-bottom: 0; /* Adjust if needed, but grid gap should handle spacing */
+    display: none; /* Hidden by default and only shown by JS when data exists */
+}
+
+.summary-container.visible {
+    display: block; /* Show when JS determines it should be visible */
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    position: sticky;
+    top: 2rem;
+    grid-column: 1 / 2; /* Explicitly place in the first column on large screens */
+}
+
+.card-list-container {
+    position: relative;
+    max-height: calc(100vh - 120px - 250px); /* Adjust based on header, summary, and buttons */
+    display: flex;
+    flex-direction: column;
+}
+
+#card-list {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.card-details-container {
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+    grid-column: 2 / -1; /* Explicitly place in the second column on large screens */
+}
+
+@media (max-width: 1024px) {
+    .container {
+        grid-template-columns: 300px 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    header {
+        padding: 1rem; /* Adjust padding for smaller screens */
+    }
+    .menu-toggle-btn {
+        display: block; /* Show hamburger button */
+        order: -1; /* Place it at the beginning of the flex container */
+    }
+    header h1 {
+        flex-grow: 1; /* Allow title to take remaining space */
+        text-align: center; /* Center the title */
+        margin: 0; /* Reset margin */
+    }
+
+    .container {
+        grid-template-columns: 1fr; /* Stacks columns, summary will span 1fr, left-column will span 1fr but be fixed */
+        padding: 1rem;
+        grid-template-areas: 
+            "summary"
+            "content"; /* Define grid areas for mobile */
+    }
+
+    /* Assign elements to grid areas */
+    .summary-container {
+        grid-column: unset; /* Reset spanning columns */
+        grid-area: summary; /* Place in summary area */
+        margin-bottom: 1rem; /* Add some margin below it on mobile */
+    }
+
+    /* Make left column slide out */
+    .left-column {
+        position: fixed; /* Override static/sticky */
+        top: 0;
+        left: 0;
+        width: 280px; /* Fixed width for the menu */
+        height: 100vh; /* Full viewport height */
+        background-color: var(--card-bg); /* Ensure it has a background */
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        z-index: 1000; /* Above main content */
+        transform: translateX(-100%); /* Start off-screen */
+        transition: transform 0.3s ease-out; /* Smooth slide transition */
+        padding: 1.5rem 1rem; /* Adjust padding for the menu */
+        overflow-y: auto; /* Allow scrolling if content overflows */
+        max-height: none; /* Reset max-height for the menu */
+        grid-column: unset; /* Remove grid column assignment when it becomes a fixed menu */
+        /* Flex children of left-column should now define its scrollable content */
+        justify-content: flex-start; /* Align content to the top within menu */
+    }
+
+    /* The main content area */
+    .card-details-container {
+        height: auto; /* Allow height to adapt */
+        max-height: none;
+        grid-column: unset; /* Reset spanning columns */
+        grid-area: content; /* Place in content area */
+    }
+
+    /* When menu-open class is on body, show the menu and overlay */
+    body.menu-open .left-column {
+        transform: translateX(0); /* Slide into view */
+    }
+
+    body.menu-open .menu-overlay {
+        display: block;
+        opacity: 1;
+    }
+
+    /* Adjust max-height for card-list-container inside the mobile menu */
+    .card-list-container {
+        max-height: calc(100vh - 100px); /* Max height relative to mobile menu height */
+        /* 100px is arbitrary, adjust based on padding and other elements in left-column */
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        font-size: 14px;
+    }
+    header h1 {
+        font-size: 1.25rem;
+    }
+    .container {
+        padding: 0.5rem;
+        gap: 1rem;
+    }
+    .card-details-container, .card-list-container, .summary-container {
+        padding: 1rem;
+    }
+
+    .left-column {
+        width: 80%; /* Make it responsive to smaller widths */
+    }
+
+    .details-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+     .details-header h2 {
+        font-size: 1.5rem;
+    }
+    .details-header-buttons {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .stat-card p {
+        font-size: 1.25rem;
+    }
+
+    .transactions-header {
+        flex-direction: column; /* Stack header and button group */
+        align-items: flex-start;
+    }
+    .transactions-header .btn-group {
+        width: 100%;
+        margin-top: 1rem; /* Space between title and buttons */
+    }
+    .transactions-filters {
+        flex-direction: column; /* Stack filter inputs */
+        width: 100%;
+        gap: 0.75rem;
+    }
+    .transactions-filters .form-group {
+        width: 100%; /* Full width for inputs */
+        min-width: unset;
+    }
+    .transactions-filters .btn-secondary {
+        width: 100%; /* Full width for reset button */
+    }
+
+    .transaction-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    /* New styles for mobile transaction item */
+    .transaction-item > div:first-child {
+        width: 100%;
+        margin-right: 0;
+    }
+    .transaction-item .transaction-right-side {
+        width: 100%; /* Take full width */
+        justify-content: space-between; /* Push amount left, button right */
+        margin-top: 0.25rem; /* Space from description */
+    }
+    .delete-transaction-btn {
+        margin-left: 0; /* No extra left margin on mobile, gap handles it */
+    }
+}

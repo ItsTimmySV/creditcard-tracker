@@ -1,0 +1,447 @@
+.summary-container {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.summary-container h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.summary-item span {
+    color: var(--text-secondary);
+}
+
+.summary-item strong {
+    font-weight: 700;
+}
+
+.summary-container .progress-bar-container {
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.summary-container small {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-align: right;
+    display: block;
+}
+
+.data-management-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.card-list-container {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+.card-list-container h2 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+
+#card-list::-webkit-scrollbar { width: 6px; }
+#card-list::-webkit-scrollbar-track { background: var(--bg-color); }
+#card-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+.credit-card-item {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.credit-card-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.credit-card-item.selected {
+    border-left: 4px solid var(--accent-color);
+    background-color: var(--bg-color);
+}
+
+.credit-card-item h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
+.credit-card-item p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.fab {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.fab:hover {
+    background-color: var(--accent-color-hover);
+    transform: scale(1.05);
+}
+
+.card-details-container {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: var(--shadow);
+}
+.card-details-container::-webkit-scrollbar { width: 6px; }
+.card-details-container::-webkit-scrollbar-track { background: var(--card-bg); }
+.card-details-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+#welcome-message {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+
+.welcome-image {
+    max-width: 300px;
+    margin-top: 2rem;
+    opacity: 0.8;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.details-header h2 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+.details-header h2 small {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.details-header-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.stat-card {
+    background-color: var(--bg-color);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.stat-card h4 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.stat-card p {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.stat-card small {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-top: 2px;
+}
+
+.stat-card .alert { color: var(--danger-color); }
+.stat-card .alert-soon { color: #f59e0b; }
+
+.stat-card .progress-bar-container {
+    margin-top: 0.5rem;
+}
+
+.progress-bar-container {
+    height: 8px;
+    background-color: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 4px;
+    transition: width 0.5s ease-in-out;
+}
+
+.progress-bar.high-usage {
+    background-color: #f59e0b; /* Orange warning */
+}
+
+.progress-bar.over-limit {
+    background-color: var(--danger-color);
+}
+
+.transactions-section {
+    margin-top: 2rem;
+}
+
+.transactions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.transactions-header h3 {
+    margin: 0;
+}
+
+.transactions-header .btn-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.transactions-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: flex-end; /* Align inputs and button at the bottom */
+}
+
+.transactions-filters .form-group {
+    margin-bottom: 0; /* Remove default form-group margin for filters */
+    flex: 1; /* Allow inputs to grow */
+    min-width: 150px; /* Minimum width for inputs */
+}
+
+.transactions-filters .form-group label {
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.transactions-filters .btn-secondary {
+    padding: 0.75rem 1rem; /* Adjust padding for button */
+    height: 40px; /* Match input height roughly */
+}
+
+.transaction-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Transaction List Item Adjustments */
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.transaction-item:last-child {
+    border-bottom: none;
+}
+.transaction-item.payment .amount {
+    color: var(--success-color);
+}
+.transaction-item.expense .amount {
+    color: var(--danger-color);
+}
+.transaction-item .description {
+    font-weight: 500;
+}
+.transaction-item .installment-info {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.transaction-item .date {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-left: 1rem;
+}
+.transaction-item > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex-grow: 1; /* Allow left side to grow */
+}
+.transaction-item .transaction-right-side { /* New wrapper for amount and delete button */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.transaction-item .amount {
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap; /* Prevent amount from wrapping */
+}
+
+/* Delete Transaction Button */
+.delete-transaction-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.1rem; /* Slightly larger icon */
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: color 0.2s, opacity 0.2s;
+    opacity: 0.7; /* Always visible but subtle */
+}
+
+.delete-transaction-btn:hover {
+    color: var(--danger-color);
+    opacity: 1;
+}
+
+.installments-section {
+    margin-top: 2rem;
+}
+
+.installments-section h3 {
+    margin-bottom: 1rem;
+}
+
+.installment-plan-item {
+    background-color: var(--bg-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.installment-plan-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.installment-plan-item-header .description {
+    font-weight: 500;
+}
+
+.installment-plan-item-header .progress-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.installment-plan-item .progress-bar-container {
+    margin-bottom: 0.5rem;
+}
+
+.installment-plan-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Add styles for the theme selection buttons in the modal */
+.theme-options-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Responsive grid */
+    gap: 1rem; /* Space between buttons */
+    margin-top: 1rem;
+}
+
+.theme-option-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    min-height: 80px; /* Minimum height for buttons */
+    box-shadow: var(--shadow); /* Apply existing shadow variable */
+}
+
+.theme-option-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.theme-option-btn.selected {
+    border-width: 2px !important; /* Make border thicker for selected */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Add a glow effect */
+}
+
+.theme-option-btn .theme-name {
+     margin-top: 0.5rem;
+}
+
+/* Specific color indicators or styles within the buttons can be added here if needed */
+/* Example: A small circle or square matching the accent color */
+.theme-option-btn::before {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background-color: currentColor; /* Uses the button's text color */
+    border: 1px solid var(--border-color); /* Add border for visibility */
+    margin-bottom: 0.5rem;
+}
+
+.theme-option-btn.selected::before {
+     border-color: currentColor; /* Border matches accent color when selected */
+     box-shadow: 0 0 5px currentColor; /* Subtle glow on the swatch */
+}

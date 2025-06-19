@@ -3,7 +3,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor de Tarjetas de Crédito</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="variables.css">
+    <link rel="stylesheet" href="base.css">
+    <link rel="stylesheet" href="layout.css">
+    <link rel="stylesheet" href="components.css">
+    <link rel="stylesheet" href="modals.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,8 +19,7 @@
         <button id="menu-toggle-btn" class="menu-toggle-btn"><i class="fas fa-bars"></i></button>
         <h1>CreditCard Tracker</h1>
         <button id="theme-switcher" class="theme-btn">
-            <i class="fas fa-sun"></i>
-            <i class="fas fa-moon"></i>
+            <i class="fas fa-adjust"></i>
         </button>
     </header>
 
@@ -200,6 +203,17 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="script.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "../data.js": "./data.js",
+                "../utils.js": "./utils.js",
+                "../modals.js": "./modals.js",
+                "../render.js": "./render.js",
+                "../handlers.js": "./handlers.js"
+            }
+        }
+    </script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

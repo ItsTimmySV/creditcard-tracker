@@ -1,0 +1,299 @@
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+body.light-theme {
+    background-color: var(--bg-color-light);
+    color: var(--text-color-light);
+    --bg-color: var(--bg-color-light);
+    --card-bg: var(--card-bg-light);
+    --text-color: var(--text-color-light);
+    --text-secondary: var(--text-secondary-light);
+    --border-color: var(--border-color-light);
+    --accent-color: var(--accent-color-light);
+    --accent-color-hover: var(--accent-color-hover-light);
+    --danger-color: var(--danger-color-light);
+    --success-color: var(--success-color-light);
+}
+
+body.dark-theme {
+    background-color: var(--bg-color-dark);
+    color: var(--text-color-dark);
+    --bg-color: var(--bg-color-dark);
+    --card-bg: var(--card-bg-dark);
+    --text-color: var(--text-color-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --border-color: var(--border-color-dark);
+    --accent-color: var(--accent-color-dark);
+    --accent-color-hover: var(--accent-color-hover-dark);
+    --danger-color: var(--danger-color-dark);
+    --success-color: var(--success-color-dark);
+}
+
+/* New: Blue Theme */
+body.blue-theme {
+    background-color: var(--bg-color-blue);
+    color: var(--text-color-blue);
+    --bg-color: var(--bg-color-blue);
+    --card-bg: var(--card-bg-blue);
+    --text-color: var(--text-color-blue);
+    --text-secondary: var(--text-secondary-blue);
+    --border-color: var(--border-color-blue);
+    --accent-color: var(--accent-color-blue);
+    --accent-color-hover: var(--accent-color-hover-blue);
+    --danger-color: var(--danger-color-blue);
+    --success-color: var(--success-color-blue);
+}
+
+/* New: Green Theme */
+body.green-theme {
+    background-color: var(--bg-color-green);
+    color: var(--text-color-green);
+    --bg-color: var(--bg-color-green);
+    --card-bg: var(--card-bg-green);
+    --text-color: var(--text-color-green);
+    --text-secondary: var(--text-secondary-green);
+    --border-color: var(--border-color-green);
+    --accent-color: var(--accent-color-green);
+    --accent-color-hover: var(--accent-color-hover-green);
+    --danger-color: var(--danger-color-green);
+    --success-color: var(--success-color-green);
+}
+
+/* New: Purple Theme */
+body.purple-theme {
+    background-color: var(--bg-color-purple);
+    color: var(--text-color-purple);
+    --bg-color: var(--bg-color-purple);
+    --card-bg: var(--card-bg-purple);
+    --text-color: var(--text-color-purple);
+    --text-secondary: var(--text-secondary-purple);
+    --border-color: var(--border-color-purple);
+    --accent-color: var(--accent-color-purple);
+    --accent-color-hover: var(--accent-color-hover-purple);
+    --danger-color: var(--danger-color-purple);
+    --success-color: var(--success-color-purple);
+}
+
+/* New: Orange Theme */
+body.orange-theme {
+    background-color: var(--bg-color-orange);
+    color: var(--text-color-orange);
+    --bg-color: var(--bg-color-orange);
+    --card-bg: var(--card-bg-orange);
+    --text-color: var(--text-color-orange);
+    --text-secondary: var(--text-secondary-orange);
+    --border-color: var(--border-color-orange);
+    --accent-color: var(--accent-color-orange);
+    --accent-color-hover: var(--accent-color-hover-orange);
+    --danger-color: var(--danger-color-orange);
+    --success-color: var(--success-color-orange);
+}
+
+/* New: Red Theme */
+body.red-theme {
+    background-color: var(--bg-color-red);
+    color: var(--text-color-red);
+    --bg-color: var(--bg-color-red);
+    --card-bg: var(--card-bg-red);
+    --text-color: var(--text-color-red);
+    --text-secondary: var(--text-secondary-red);
+    --border-color: var(--border-color-red);
+    --accent-color: var(--accent-color-red);
+    --accent-color-hover: var(--accent-color-hover-red);
+    --danger-color: var(--danger-color-red);
+    --success-color: var(--success-color-red);
+}
+
+/* New: Blue Dark Theme */
+body.blue-dark-theme {
+    background-color: var(--bg-color-blue-dark);
+    color: var(--text-color-blue-dark);
+    --bg-color: var(--bg-color-blue-dark);
+    --card-bg: var(--card-bg-blue-dark);
+    --text-color: var(--text-color-blue-dark);
+    --text-secondary: var(--text-secondary-blue-dark);
+    --border-color: var(--border-color-blue-dark);
+    --accent-color: var(--accent-color-blue-dark);
+    --accent-color-hover: var(--accent-color-hover-blue-dark);
+    --danger-color: var(--danger-color-blue-dark);
+    --success-color: var(--success-color-blue-dark);
+}
+
+/* New: Green Dark Theme */
+body.green-dark-theme {
+    background-color: var(--bg-color-green-dark);
+    color: var(--text-color-green-dark);
+    --bg-color: var(--bg-color-green-dark);
+    --card-bg: var(--card-bg-green-dark);
+    --text-color: var(--text-color-green-dark);
+    --text-secondary: var(--text-secondary-green-dark);
+    --border-color: var(--border-color-green-dark);
+    --accent-color: var(--accent-color-green-dark);
+    --accent-color-hover: var(--accent-color-hover-green-dark);
+    --danger-color: var(--danger-color-green-dark);
+    --success-color: var(--success-color-green-dark);
+}
+
+/* New: Purple Dark Theme */
+body.purple-dark-theme {
+    background-color: var(--bg-color-purple-dark);
+    color: var(--text-color-purple-dark);
+    --bg-color: var(--bg-color-purple-dark);
+    --card-bg: var(--card-bg-purple-dark);
+    --text-color: var(--text-color-purple-dark);
+    --text-secondary: var(--text-secondary-purple-dark);
+    --border-color: var(--border-color-purple-dark);
+    --accent-color: var(--accent-color-purple-dark);
+    --accent-color-hover: var(--accent-color-hover-purple-dark);
+    --danger-color: var(--danger-color-purple-dark);
+    --success-color: var(--success-color-purple-dark);
+}
+
+/* New: Orange Dark Theme */
+body.orange-dark-theme {
+    background-color: var(--bg-color-orange-dark);
+    color: var(--text-color-orange-dark);
+    --bg-color: var(--bg-color-orange-dark);
+    --card-bg: var(--card-bg-orange-dark);
+    --text-color: var(--text-color-orange-dark);
+    --text-secondary: var(--text-secondary-orange-dark);
+    --border-color: var(--border-color-orange-dark);
+    --accent-color: var(--accent-color-orange-dark);
+    --accent-color-hover: var(--accent-color-hover-orange-dark);
+    --danger-color: var(--danger-color-orange-dark);
+    --success-color: var(--success-color-orange-dark);
+}
+
+/* New: Red Dark Theme */
+body.red-dark-theme {
+    background-color: var(--bg-color-red-dark);
+    color: var(--text-color-red-dark);
+    --bg-color: var(--bg-color-red-dark);
+    --card-bg: var(--card-bg-red-dark);
+    --text-color: var(--text-color-red-dark);
+    --text-secondary: var(--text-secondary-red-dark);
+    --border-color: var(--border-color-red-dark);
+    --accent-color: var(--accent-color-red-dark);
+    --accent-color-hover: var(--accent-color-hover-red-dark);
+    --danger-color: var(--danger-color-red-dark);
+    --success-color: var(--success-color-red-dark);
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+}
+
+header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin: 0;
+}
+
+.theme-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all 0.3s;
+}
+
+.theme-btn:hover {
+    background-color: var(--bg-color);
+    color: var(--accent-color);
+}
+
+/* New: Hamburger menu button */
+.menu-toggle-btn {
+    display: none; /* Hidden by default on large screens */
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    /* Removed margin-right to let flexbox handle spacing in header */
+    transition: color 0.3s;
+}
+
+.menu-toggle-btn:hover {
+    color: var(--accent-color);
+}
+
+/* New: Menu overlay */
+.menu-overlay {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 999; /* Below modals, above main content */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: var(--accent-color-hover);
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+}
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: var(--bg-color-dark);
+}
+.btn-success:hover {
+    opacity: 0.9;
+}
+
+.btn-secondary {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.btn-secondary:hover {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: var(--card-bg);
+}
+
+.btn-secondary i {
+    margin-right: 0.5rem;
+}
