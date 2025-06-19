@@ -25,20 +25,68 @@ export const exportDataBtn = document.getElementById('export-data-btn');
 export const importDataBtn = document.getElementById('import-data-btn');
 export const importFileInput = document.getElementById('import-file-input');
 
+// New: Theme selection buttons (will be queried after HTML is loaded)
+let themeOptionButtons; // This will hold the NodeList of theme buttons
+
 // Define available themes
-const THEMES = ['dark-theme', 'light-theme', 'blue-theme', 'green-theme'];
+const THEMES = [
+    'dark-theme', 
+    'light-theme', 
+    'blue-theme', 
+    'green-theme', 
+    'red-theme', 
+    'yellow-theme', 
+    'purple-theme',
+    'blue-dark-theme', // New dark variants
+    'green-dark-theme',
+    'red-dark-theme',
+    'yellow-dark-theme',
+    'purple-dark-theme'
+];
+
+// New function to apply theme
+export const applyTheme = (themeName) => {
+    // Remove all theme classes and add the new one
+    document.body.classList.remove(...THEMES);
+    document.body.classList.add(themeName);
+    localStorage.setItem('theme', themeName);
+
+    // Update selected state in the modal buttons if they exist
+    if (themeOptionButtons) {
+        themeOptionButtons.forEach(btn => {
+            if (btn.dataset.theme === themeName) {
+                btn.classList.add('selected-theme');
+            } else {
+                btn.classList.remove('selected-theme');
+            }
+        });
+    }
+};
 
 // --- Event Handlers ---
 export const handleThemeSwitch = () => {
-    let currentTheme = localStorage.getItem('theme') || THEMES[0]; // Get current theme or default to first
-    let currentIndex = THEMES.indexOf(currentTheme);
-    let nextIndex = (currentIndex + 1) % THEMES.length;
-    let nextTheme = THEMES[nextIndex];
+    // Before opening the modal, ensure themeOptionButtons are queried and the current theme is highlighted
+    if (!themeOptionButtons) { // Query only once when the modal is first opened
+        themeOptionButtons = document.querySelectorAll('.theme-option-btn');
+        themeOptionButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                applyTheme(e.currentTarget.dataset.theme);
+                handleCloseModals(); // Close modal after selection
+            });
+        });
+    }
 
-    // Remove all theme classes and add the new one
-    document.body.classList.remove(...THEMES);
-    document.body.classList.add(nextTheme);
-    localStorage.setItem('theme', nextTheme);
+    // Highlight current theme when modal opens
+    const currentTheme = localStorage.getItem('theme') || THEMES[0];
+    themeOptionButtons.forEach(btn => {
+        if (btn.dataset.theme === currentTheme) {
+            btn.classList.add('selected-theme');
+        } else {
+            btn.classList.remove('selected-theme');
+        }
+    });
+
+    handleOpenModal(modals.themeSelectionModal);
 };
 
 export const toggleMenu = () => {
@@ -237,7 +285,12 @@ export const handleDeleteCard = (e) => {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            cards = cards.filter(c => c.id !== cardId); // Reassigning cards array
+            // Find the index of the card to remove it in place
+            const index = cards.findIndex(c => c.id === cardId);
+            if (index !== -1) {
+                cards.splice(index, 1); // Remove the card from the array
+            }
+            
             saveData();
             selectedCardId.value = null; // Update the mutable object's value
             render();
@@ -280,17 +333,22 @@ export const handleExportData = () => {
         Swal.fire('Nada que exportar', 'No tienes ninguna tarjeta para exportar.', 'info');
         return;
     }
-    const dataStr = JSON.stringify(cards, null, 2);
+
+    let currentTheme = localStorage.getItem('theme') || THEMES[0]; // Get current theme
+
+    const exportContent = { cards: cards, theme: currentTheme };
+    const dataStr = JSON.stringify(exportContent, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
     const date = new Date().toISOString().slice(0, 10);
-    link.download = `creditcard-tracker-backup-${date}.json`;
+    link.download = `creditcard-tracker-data-${date}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    Swal.fire('¡Exportado!', 'Tus datos y tema han sido exportados correctamente.', 'success');
 };
 
 export const handleImportClick = () => {
@@ -306,20 +364,16 @@ export const handleImportFile = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
-            const importedData = JSON.parse(event.target.result);
-            if (!Array.isArray(importedData)) {
-                throw new Error('El archivo JSON no es un array válido.');
-            }
+            const importedContent = JSON.parse(event.target.result);
             
-            // Simple validation (can be more robust)
-            const isValid = importedData.every(item => item.id && item.nickname && item.creditLimit && Array.isArray(item.transactions));
-            if (!isValid) {
-                 throw new Error('El formato de los datos en el JSON no es correcto.');
+            // Validate the imported content structure
+            if (typeof importedContent !== 'object' || importedContent === null || !Array.isArray(importedContent.cards)) {
+                throw new Error('El archivo JSON no es un formato de datos válido (esperado un objeto con "cards" y "theme").');
             }
             
             Swal.fire({
                 title: 'Importar Datos',
-                text: `Encontradas ${importedData.length} tarjetas. ¿Quieres reemplazar tus datos actuales? Esta acción no se puede deshacer.`,
+                text: `Encontradas ${importedContent.cards.length} tarjetas. ¿Quieres reemplazar tus datos actuales y aplicar el tema guardado en el archivo? Esta acción no se puede deshacer.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -328,9 +382,9 @@ export const handleImportFile = (e) => {
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Directly reassign the imported cards data.
-                    // This relies on `cards` being exported as `let` from `data.js`.
-                    cards.splice(0, cards.length, ...importedData); // Clear and re-populate the existing array reference
+                    // Clear and re-populate the existing cards array reference
+                    cards.splice(0, cards.length); 
+                    cards.push(...importedContent.cards);
                     
                     // Apply migration logic to imported data too
                     cards.forEach(card => {
@@ -347,10 +401,18 @@ export const handleImportFile = (e) => {
                             }
                         });
                     });
+                    
+                    // Apply imported theme if valid
+                    if (importedContent.theme && THEMES.includes(importedContent.theme)) {
+                        applyTheme(importedContent.theme); // Use the new applyTheme function
+                    } else {
+                        // If imported theme is invalid/missing, the current theme (from localStorage or default) will persist.
+                    }
+
                     saveData();
                     selectedCardId.value = cards.length > 0 ? cards[0].id : null; // Update the mutable object's value
                     render();
-                    Swal.fire('¡Importado!', 'Tus datos han sido importados correctamente.', 'success');
+                    Swal.fire('¡Importado!', 'Tus datos y tema han sido importados correctamente.', 'success');
                 }
             });
 

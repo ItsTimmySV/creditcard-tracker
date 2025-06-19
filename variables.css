@@ -19,7 +19,7 @@
     --danger-color-dark: #f87171;
     --success-color-dark: #4ade80;
 
-    /* Blue Theme Variables */
+    /* Blue Theme (Light Variant) Variables */
     --bg-color-blue: #e0f2f7;
     --card-bg-blue: #ffffff;
     --text-color-blue: #0f4c5c;
@@ -30,7 +30,7 @@
     --danger-color-blue: #ef4444;
     --success-color-blue: #28a745;
 
-    /* Green Theme Variables */
+    /* Green Theme (Light Variant) Variables */
     --bg-color-green: #e6ffe6;
     --card-bg-green: #ffffff;
     --text-color-green: #2e4d2e;
@@ -40,6 +40,94 @@
     --accent-color-hover-green: #388e3c;
     --danger-color-green: #ef4444;
     --success-color-green: #28a745;
+
+    /* Red Theme (Light Variant) Variables */
+    --bg-color-red: #fff5f5;
+    --card-bg-red: #ffffff;
+    --text-color-red: #8b0000;
+    --text-secondary-red: #a34e4e;
+    --border-color-red: #fbcaca;
+    --accent-color-red: #dc2626;
+    --accent-color-hover-red: #b91c1c;
+    --danger-color-red: #ef4444; /* Consistent danger */
+    --success-color-red: #22c55e; /* Consistent success */
+
+    /* Yellow Theme (Light Variant) Variables */
+    --bg-color-yellow: #fffdf5;
+    --card-bg-yellow: #ffffff;
+    --text-color-yellow: #4d3f00;
+    --text-secondary-yellow: #857a4d;
+    --border-color-yellow: #fae3a1;
+    --accent-color-yellow: #facc15;
+    --accent-color-hover-yellow: #eab308;
+    --danger-color-yellow: #ef4444; /* Consistent danger */
+    --success-color-yellow: #22c55e; /* Consistent success */
+
+    /* Purple Theme (Light Variant) Variables */
+    --bg-color-purple: #f8f0ff;
+    --card-bg-purple: #ffffff;
+    --text-color-purple: #3f004d;
+    --text-secondary-purple: #704c85;
+    --border-color-purple: #d5b8e0;
+    --accent-color-purple: #9333ea;
+    --accent-color-hover-purple: #7e22ce;
+    --danger-color-purple: #ef4444; /* Consistent danger */
+    --success-color-purple: #22c55e; /* Consistent success */
+
+    /* New: Blue Dark Theme Variables */
+    --bg-color-blue-dark: #0a192f;
+    --card-bg-blue-dark: #102a43;
+    --text-color-blue-dark: #e0f2f7;
+    --text-secondary-blue-dark: #9fb3c8;
+    --border-color-blue-dark: #2e4a62;
+    --accent-color-blue-dark: #00bcd4;
+    --accent-color-hover-blue-dark: #00a4bd;
+    --danger-color-blue-dark: #f87171;
+    --success-color-blue-dark: #4ade80;
+
+    /* New: Green Dark Theme Variables */
+    --bg-color-green-dark: #0f1c1f;
+    --card-bg-green-dark: #1e3a34;
+    --text-color-green-dark: #e0ffe0;
+    --text-secondary-green-dark: #a7bfab;
+    --border-color-green-dark: #3b5c54;
+    --accent-color-green-dark: #81c784;
+    --accent-color-hover-green-dark: #66bb6a;
+    --danger-color-green-dark: #f87171;
+    --success-color-green-dark: #4ade80;
+
+    /* New: Red Dark Theme Variables */
+    --bg-color-red-dark: #2b0c0c;
+    --card-bg-red-dark: #4a1f1f;
+    --text-color-red-dark: #ffeded;
+    --text-secondary-red-dark: #c99e9e;
+    --border-color-red-dark: #7d4444;
+    --accent-color-red-dark: #ef5350;
+    --accent-color-hover-red-dark: #e53935;
+    --danger-color-red-dark: #f87171;
+    --success-color-red-dark: #4ade80;
+
+    /* New: Yellow Dark Theme Variables */
+    --bg-color-yellow-dark: #2e280c;
+    --card-bg-yellow-dark: #4c401f;
+    --text-color-yellow-dark: #fff8e1;
+    --text-secondary-yellow-dark: #bfae83;
+    --border-color-yellow-dark: #7d6c44;
+    --accent-color-yellow-dark: #ffd54f;
+    --accent-color-hover-yellow-dark: #ffc107;
+    --danger-color-yellow-dark: #f87171;
+    --success-color-yellow-dark: #4ade80;
+
+    /* New: Purple Dark Theme Variables */
+    --bg-color-purple-dark: #20122e;
+    --card-bg-purple-dark: #351f4a;
+    --text-color-purple-dark: #f3e5f5;
+    --text-secondary-purple-dark: #a894c7;
+    --border-color-purple-dark: #5e447d;
+    --accent-color-purple-dark: #ab47bc;
+    --accent-color-hover-purple-dark: #9c27b0;
+    --danger-color-purple-dark: #f87171;
+    --success-color-purple-dark: #4ade80;
 
     --font-family: 'Roboto', sans-serif;
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

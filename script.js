@@ -9,19 +9,15 @@ import {
     handleAddCard, handleOpenExpenseModal, handleOpenInstallmentModal, handleOpenPaymentModal,
     handleAddExpense, handleAddInstallment, handleAddPayment,
     handleExportData, handleImportClick, handleImportFile,
-    handleThemeSwitch, toggleMenu
+    handleThemeSwitch, toggleMenu, applyTheme // Import applyTheme
 } from '../handlers.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     
-    // Apply saved theme or default
+    // Apply saved theme or default using the new applyTheme function
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        document.body.classList.add(savedTheme);
-    } else {
-        document.body.classList.add('dark-theme'); // Default theme
-    }
+    applyTheme(savedTheme || 'dark-theme'); // Use applyTheme
 
     // Set initial selectedCardId if cards exist
     if (cards.length > 0) {

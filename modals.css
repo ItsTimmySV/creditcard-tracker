@@ -99,6 +99,88 @@
     margin-bottom: 2rem;
 }
 
+/* New: Theme selection styles */
+.theme-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.theme-option-btn {
+    width: 120px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    padding: 0; /* Override default button padding */
+}
+
+/* Specific background colors for theme preview buttons */
+/* These buttons will visually represent the theme */
+.theme-option-btn[data-theme="dark-theme"] { background-color: #121212; color: #e5e7eb; }
+.theme-option-btn[data-theme="light-theme"] { background-color: #f4f7fc; color: #1e293b; }
+.theme-option-btn[data-theme="blue-theme"] { background-color: #e0f2f7; color: #0f4c5c; }
+.theme-option-btn[data-theme="green-theme"] { background-color: #e6ffe6; color: #2e4d2e; }
+.theme-option-btn[data-theme="red-theme"] { background-color: #fff5f5; color: #8b0000; }
+.theme-option-btn[data-theme="yellow-theme"] { background-color: #fffdf5; color: #4d3f00; }
+.theme-option-btn[data-theme="purple-theme"] { background-color: #f8f0ff; color: #3f004d; }
+
+/* Add background colors for new dark variants to reflect their theme */
+.theme-option-btn[data-theme="blue-dark-theme"] { background-color: var(--bg-color-blue-dark); color: var(--text-color-blue-dark); }
+.theme-option-btn[data-theme="green-dark-theme"] { background-color: var(--bg-color-green-dark); color: var(--text-color-green-dark); }
+.theme-option-btn[data-theme="red-dark-theme"] { background-color: var(--bg-color-red-dark); color: var(--text-color-red-dark); }
+.theme-option-btn[data-theme="yellow-dark-theme"] { background-color: var(--bg-color-yellow-dark); color: var(--text-color-yellow-dark); }
+.theme-option-btn[data-theme="purple-dark-theme"] { background-color: var(--bg-color-purple-dark); color: var(--text-color-purple-dark); }
+
+/* Add a visual cue for the currently selected theme */
+.theme-option-btn.selected-theme {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-color-hover);
+    transform: scale(1.05);
+}
+
+.theme-option-btn:hover:not(.selected-theme) {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Small round color swatch inside the button */
+.theme-option-btn .theme-swatch {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(0,0,0,0.1); /* Subtle border for light swatches */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Specific accent colors for swatches (mimics the accent of each theme) */
+.theme-option-btn .theme-swatch.dark { background-color: var(--accent-color-dark); border-color: rgba(255,255,255,0.2); }
+.theme-option-btn .theme-swatch.light { background-color: var(--accent-color-light); }
+.theme-option-btn .theme-swatch.blue { background-color: var(--accent-color-blue); }
+.theme-option-btn .theme-swatch.green { background-color: var(--accent-color-green); }
+.theme-option-btn .theme-swatch.red { background-color: var(--accent-color-red); }
+.theme-option-btn .theme-swatch.yellow { background-color: var(--accent-color-yellow); }
+.theme-option-btn .theme-swatch.purple { background-color: var(--accent-color-purple); }
+
+/* New: Theme Swatches for Dark Variants */
+.theme-option-btn .theme-swatch.blue-dark { background-color: var(--accent-color-blue-dark); border-color: rgba(255,255,255,0.2); }
+.theme-option-btn .theme-swatch.green-dark { background-color: var(--accent-color-green-dark); border-color: rgba(255,255,255,0.2); }
+.theme-option-btn .theme-swatch.red-dark { background-color: var(--accent-color-red-dark); border-color: rgba(255,255,255,0.2); }
+.theme-option-btn .theme-swatch.yellow-dark { background-color: var(--accent-color-yellow-dark); border-color: rgba(255,255,255,0.2); }
+.theme-option-btn .theme-swatch.purple-dark { background-color: var(--accent-color-purple-dark); border-color: rgba(255,255,255,0.2); }
+
 @media (max-width: 600px) {
     .modal-content {
         width: 95%;
@@ -109,5 +191,11 @@
     .modal-content h2 {
         font-size: 1.2rem;
         margin-bottom: 1.5rem;
+    }
+
+    .theme-option-btn {
+        width: 100px;
+        height: 70px;
+        font-size: 0.8rem;
     }
 }

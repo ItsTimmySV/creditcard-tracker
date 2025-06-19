@@ -62,6 +62,126 @@ body.green-theme {
     --success-color: var(--success-color-green);
 }
 
+/* New: Red Theme */
+body.red-theme {
+    background-color: var(--bg-color-red);
+    color: var(--text-color-red);
+    --bg-color: var(--bg-color-red);
+    --card-bg: var(--card-bg-red);
+    --text-color: var(--text-color-red);
+    --text-secondary: var(--text-secondary-red);
+    --border-color: var(--border-color-red);
+    --accent-color: var(--accent-color-red);
+    --accent-color-hover: var(--accent-color-hover-red);
+    --danger-color: var(--danger-color-red);
+    --success-color: var(--success-color-red);
+}
+
+/* New: Yellow Theme */
+body.yellow-theme {
+    background-color: var(--bg-color-yellow);
+    color: var(--text-color-yellow);
+    --bg-color: var(--bg-color-yellow);
+    --card-bg: var(--card-bg-yellow);
+    --text-color: var(--text-color-yellow);
+    --text-secondary: var(--text-secondary-yellow);
+    --border-color: var(--border-color-yellow);
+    --accent-color: var(--accent-color-yellow);
+    --accent-color-hover: var(--accent-color-hover-yellow);
+    --danger-color: var(--danger-color-yellow);
+    --success-color: var(--success-color-yellow);
+}
+
+/* New: Purple Theme */
+body.purple-theme {
+    background-color: var(--bg-color-purple);
+    color: var(--text-color-purple);
+    --bg-color: var(--bg-color-purple);
+    --card-bg: var(--card-bg-purple);
+    --text-color: var(--text-color-purple);
+    --text-secondary: var(--text-secondary-purple);
+    --border-color: var(--border-color-purple);
+    --accent-color: var(--accent-color-purple);
+    --accent-color-hover: var(--accent-color-hover-purple);
+    --danger-color: var(--danger-color-purple);
+    --success-color: var(--success-color-purple);
+}
+
+/* New: Blue Dark Theme */
+body.blue-dark-theme {
+    background-color: var(--bg-color-dark);
+    color: var(--text-color-dark);
+    --bg-color: var(--bg-color-dark);
+    --card-bg: var(--card-bg-dark);
+    --text-color: var(--text-color-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --border-color: var(--border-color-dark);
+    --danger-color: var(--danger-color-dark);
+    --success-color: var(--success-color-dark);
+    --accent-color: var(--accent-color-blue-dark);
+    --accent-color-hover: var(--accent-color-hover-blue-dark);
+}
+
+/* New: Green Dark Theme */
+body.green-dark-theme {
+    background-color: var(--bg-color-dark);
+    color: var(--text-color-dark);
+    --bg-color: var(--bg-color-dark);
+    --card-bg: var(--card-bg-dark);
+    --text-color: var(--text-color-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --border-color: var(--border-color-dark);
+    --danger-color: var(--danger-color-dark);
+    --success-color: var(--success-color-dark);
+    --accent-color: var(--accent-color-green-dark);
+    --accent-color-hover: var(--accent-color-hover-green-dark);
+}
+
+/* New: Red Dark Theme */
+body.red-dark-theme {
+    background-color: var(--bg-color-dark);
+    color: var(--text-color-dark);
+    --bg-color: var(--bg-color-dark);
+    --card-bg: var(--card-bg-dark);
+    --text-color: var(--text-color-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --border-color: var(--border-color-dark);
+    --danger-color: var(--danger-color-dark);
+    --success-color: var(--success-color-dark);
+    --accent-color: var(--accent-color-red-dark);
+    --accent-color-hover: var(--accent-color-hover-red-dark);
+}
+
+/* New: Yellow Dark Theme */
+body.yellow-dark-theme {
+    background-color: var(--bg-color-dark);
+    color: var(--text-color-dark);
+    --bg-color: var(--bg-color-dark);
+    --card-bg: var(--card-bg-dark);
+    --text-color: var(--text-color-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --border-color: var(--border-color-dark);
+    --danger-color: var(--danger-color-dark);
+    --success-color: var(--success-color-dark);
+    --accent-color: var(--accent-color-yellow-dark);
+    --accent-color-hover: var(--accent-color-hover-yellow-dark);
+}
+
+/* New: Purple Dark Theme */
+body.purple-dark-theme {
+    background-color: var(--bg-color-dark);
+    color: var(--text-color-dark);
+    --bg-color: var(--bg-color-dark);
+    --card-bg: var(--card-bg-dark);
+    --text-color: var(--text-color-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --border-color: var(--border-color-dark);
+    --danger-color: var(--danger-color-dark);
+    --success-color: var(--success-color-dark);
+    --accent-color: var(--accent-color-purple-dark);
+    --accent-color-hover: var(--accent-color-hover-purple-dark);
+}
+
 header {
     display: flex;
     justify-content: space-between;

@@ -4,6 +4,7 @@ export const modals = {
     addExpenseModal: document.getElementById('add-expense-modal'),
     addInstallmentModal: document.getElementById('add-installment-modal'),
     addPaymentModal: document.getElementById('add-payment-modal'),
+    themeSelectionModal: document.getElementById('theme-selection-modal'), // Add new modal
 };
 
 export const closeBtns = document.querySelectorAll('.close-btn');
@@ -21,4 +22,3 @@ export const handleCloseModals = () => {
         modal.style.display = 'none';
     });
 };
-
